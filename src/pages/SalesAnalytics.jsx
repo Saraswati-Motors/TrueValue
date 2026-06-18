@@ -7,16 +7,16 @@ const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "
 const getMonthlySalesData = (salesLogsList, vehiclesList) => {
   const currentYear = new Date().getFullYear();
   const lastYear = currentYear - 1;
-  
+
   const thisYearSales = Array(12).fill(0);
   const lastYearSales = Array(12).fill(0);
-  
+
   if (salesLogsList && salesLogsList.length > 0) {
     salesLogsList.forEach(log => {
       const date = new Date(log.sale_date || log.created_at);
       const year = date.getFullYear();
       const month = date.getMonth();
-      
+
       if (year === currentYear) {
         thisYearSales[month]++;
       } else if (year === lastYear) {
@@ -29,7 +29,7 @@ const getMonthlySalesData = (salesLogsList, vehiclesList) => {
         const date = car.created_at ? new Date(car.created_at) : new Date();
         const year = date.getFullYear();
         const month = date.getMonth();
-        
+
         if (year === currentYear) {
           thisYearSales[month]++;
         } else if (year === lastYear) {
@@ -38,10 +38,10 @@ const getMonthlySalesData = (salesLogsList, vehiclesList) => {
       }
     });
   }
-  
+
   const mockThisYear = [3, 4, 3, 6, 5, 8, 7, 9, 8, 10, 11, 14];
   const mockLastYear = [2, 3, 4, 5, 4, 6, 5, 7, 6, 8, 9, 10];
-  
+
   const finalThisYear = [...mockThisYear];
   const currentMonth = new Date().getMonth();
   for (let m = 0; m < 12; m++) {
@@ -60,7 +60,7 @@ const getMonthlySalesData = (salesLogsList, vehiclesList) => {
   }
 
   const maxVal = Math.max(...finalThisYear, ...finalLastYear, 5);
-  
+
   const getCoordinates = (salesArray) => {
     return salesArray.map((val, idx) => {
       const x = Math.round(idx * (1000 / 11));
@@ -68,14 +68,14 @@ const getMonthlySalesData = (salesLogsList, vehiclesList) => {
       return { x, y, val };
     });
   };
-  
+
   const thisYearCoords = getCoordinates(finalThisYear);
   const lastYearCoords = getCoordinates(finalLastYear);
-  
+
   const getPathD = (coords) => {
     return coords.map((c, i) => `${i === 0 ? 'M' : 'L'}${c.x},${c.y}`).join(' ');
   };
-  
+
   return {
     thisYear: finalThisYear,
     lastYear: finalLastYear,
@@ -99,7 +99,7 @@ export default function SalesAnalytics() {
         // Mock fallback load from local storage
         const localVehicles = localStorage.getItem("truevalue_mock_vehicles");
         setVehicles(localVehicles ? JSON.parse(localVehicles) : mockCars);
-        
+
         const localLogs = localStorage.getItem("truevalue_mock_sales_logs");
         setSalesLogs(localLogs ? JSON.parse(localLogs) : []);
         setLoading(false);
@@ -126,7 +126,7 @@ export default function SalesAnalytics() {
         console.error("Error loading analytics data, using fallback:", err);
         const localVehicles = localStorage.getItem("truevalue_mock_vehicles");
         setVehicles(localVehicles ? JSON.parse(localVehicles) : mockCars);
-        
+
         const localLogs = localStorage.getItem("truevalue_mock_sales_logs");
         setSalesLogs(localLogs ? JSON.parse(localLogs) : []);
       } finally {
@@ -146,7 +146,7 @@ export default function SalesAnalytics() {
     const total = vehicles.length;
     const sold = vehicles.filter(v => v.status?.toUpperCase() === "SOLD" || v.badge?.toUpperCase() === "SOLD").length;
     const available = total - sold;
-    
+
     // Inventory Health = Available / Total
     const healthPercent = total > 0 ? Math.round((available / total) * 100) : 100;
 
@@ -252,7 +252,7 @@ export default function SalesAnalytics() {
           <p className="font-label-lg text-primary uppercase tracking-widest">Performance Dashboard</p>
           <h2 className="font-headline-lg text-headline-lg text-text-main">Sales Analytics</h2>
         </div>
-        <button 
+        <button
           onClick={handleDownloadReport}
           className="flex items-center gap-2 bg-primary text-on-primary px-4 py-2 rounded-lg font-label-lg hover:bg-primary-container transition-colors shadow-sm active:scale-95 h-12"
         >
@@ -317,28 +317,28 @@ export default function SalesAnalytics() {
                   <path className="line-chart-path transition-all duration-500" d={chartData.lastYearPath} fill="none" stroke="#c6c5d5" strokeWidth="2" strokeDasharray="5,5"></path>
                   {/* This Year Path (Indigo) */}
                   <path className="line-chart-path animate-draw transition-all duration-500" d={chartData.thisYearPath} fill="none" stroke="#0e158d" strokeWidth="3" strokeLinecap="round"></path>
-                  
+
                   {/* Data Points */}
                   {chartData.thisYearCoords.map((pt, idx) => (
                     <g key={`this-${idx}`} className="group/point">
-                      <circle 
-                        cx={pt.x} 
-                        cy={pt.y} 
-                        fill="#0e158d" 
-                        r="4" 
+                      <circle
+                        cx={pt.x}
+                        cy={pt.y}
+                        fill="#0e158d"
+                        r="4"
                         className="transition-all duration-200 hover:r-6 cursor-pointer"
                       ></circle>
                       <title>{months[idx]} (This Year): {pt.val} units sold</title>
                     </g>
                   ))}
-                  
+
                   {chartData.lastYearCoords.map((pt, idx) => (
                     <g key={`last-${idx}`} className="group/point">
-                      <circle 
-                        cx={pt.x} 
-                        cy={pt.y} 
-                        fill="#c6c5d5" 
-                        r="3" 
+                      <circle
+                        cx={pt.x}
+                        cy={pt.y}
+                        fill="#c6c5d5"
+                        r="3"
                         className="transition-all duration-200 hover:r-5 cursor-pointer"
                       ></circle>
                       <title>{months[idx]} (Last Year): {pt.val} units sold</title>
