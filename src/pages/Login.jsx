@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 
 export default function Login() {
@@ -61,9 +61,9 @@ export default function Login() {
       {/* Hero Section (Visual Anchor) */}
       <section className="relative w-full md:w-1/2 min-h-[265px] md:min-h-screen bg-primary-container overflow-hidden flex flex-col justify-center items-center p-gutter">
         <div className="absolute inset-0 z-0">
-          <img 
-            alt="Luxury Showroom" 
-            className="w-full h-full object-cover opacity-30 mix-blend-overlay" 
+          <img
+            alt="Luxury Showroom"
+            className="w-full h-full object-cover opacity-30 mix-blend-overlay"
             src="https://lh3.googleusercontent.com/aida-public/AB6AXuDJdrqgB-2Jfkja8xyhiTzKP2_OdBPE9eRflOkWq1hHjbdRCnqGHW9vXREKowqsD5OJXizdjRbXVLZqQkwHWqrywMWfAQnHZUXWwguB8u3Uu6wI24p6GYnOsObaHghNoS-mEwm5ELectPvB5RVUa7Kk1WmIgeS9Cbis5OYb0hzA15qhmxl7dvnUjrN2-aJiwjBZBIG56pSt2cfD9vKMQjB1r84Csb4Mk8wyrRsxE3U06qHgnlvx3JXJjcyvpw7dv_2srbrJj38KC3zL"
           />
           <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary-container/80 to-transparent"></div>
@@ -95,7 +95,7 @@ export default function Login() {
             <h2 className="font-headline-md text-headline-md text-primary">TrueValue Employee</h2>
             <div className="h-1 w-12 bg-secondary rounded-full mt-2"></div>
           </div>
-          
+
           <div className="mb-stack-lg">
             <h2 className="hidden md:block font-headline-lg text-headline-lg text-on-surface mb-2">Welcome Back</h2>
             <p className="font-body-md text-body-md text-on-surface-variant">Log in with your corporate credentials to manage the inventory.</p>
@@ -114,10 +114,10 @@ export default function Login() {
               <label className="block font-label-lg text-label-lg text-on-surface-variant" htmlFor="employee-id">Employee ID or Email</label>
               <div className="relative group">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-outline group-focus-within:text-primary transition-colors">person</span>
-                <input 
-                  className="w-full pl-12 pr-4 h-12 bg-surface-bright border border-outline-variant rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all font-body-md placeholder:text-outline-variant outline-none" 
-                  id="employee-id" 
-                  type="text" 
+                <input
+                  className="w-full pl-12 pr-4 h-12 bg-surface-bright border border-outline-variant rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all font-body-md placeholder:text-outline-variant outline-none"
+                  id="employee-id"
+                  type="text"
                   placeholder="Enter your ID or Email"
                   value={emailOrId}
                   onChange={(e) => setEmailOrId(e.target.value)}
@@ -128,23 +128,20 @@ export default function Login() {
 
             {/* Password Field */}
             <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <label className="block font-label-lg text-label-lg text-on-surface-variant" htmlFor="password">Password</label>
-                <a className="font-label-md text-label-md text-primary hover:underline transition-all" href="#">Forgot Password?</a>
-              </div>
+              <label className="block font-label-lg text-label-lg text-on-surface-variant" htmlFor="password">Password</label>
               <div className="relative group">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-outline group-focus-within:text-primary transition-colors">lock</span>
-                <input 
-                  className="w-full pl-12 pr-12 h-12 bg-surface-bright border border-outline-variant rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all font-body-md placeholder:text-outline-variant outline-none" 
-                  id="password" 
-                  type={showPassword ? "text" : "password"} 
+                <input
+                  className="w-full pl-12 pr-12 h-12 bg-surface-bright border border-outline-variant rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all font-body-md placeholder:text-outline-variant outline-none"
+                  id="password"
+                  type={showPassword ? "text" : "password"}
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={submitting}
                 />
-                <button 
-                  className="absolute right-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-outline hover:text-on-surface transition-colors" 
+                <button
+                  className="absolute right-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-outline hover:text-on-surface transition-colors"
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                 >
@@ -155,9 +152,9 @@ export default function Login() {
 
             {/* Remember Me Toggle */}
             <div className="flex items-center gap-3 py-2">
-              <input 
-                className="w-5 h-5 rounded border-outline-variant text-primary focus:ring-primary cursor-pointer" 
-                id="remember" 
+              <input
+                className="w-5 h-5 rounded border-outline-variant text-primary focus:ring-primary cursor-pointer"
+                id="remember"
                 type="checkbox"
                 checked={rememberMe}
                 onChange={() => setRememberMe(!rememberMe)}
@@ -167,15 +164,15 @@ export default function Login() {
             </div>
 
             {/* Primary Action */}
-            <button 
-              className="w-full h-14 bg-primary text-white font-headline-md text-headline-md rounded-lg shadow-lg shadow-primary/20 hover:bg-primary-container active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50" 
+            <button
+              className="w-full h-14 bg-primary text-white font-headline-md text-headline-md rounded-lg shadow-lg shadow-primary/20 hover:bg-primary-container active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50"
               type="submit"
               disabled={submitting}
             >
               {submitting ? (
                 <>
                   <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
                   <span>Authenticating...</span>
@@ -200,13 +197,6 @@ export default function Login() {
                 </p>
               </div>
             </div>
-          </div>
-
-          {/* Language/Links */}
-          <div className="mt-stack-lg flex flex-wrap justify-center gap-stack-md">
-            <a className="font-label-md text-label-md text-outline hover:text-on-surface-variant transition-colors" href="#">Privacy Policy</a>
-            <a className="font-label-md text-label-md text-outline hover:text-on-surface-variant transition-colors" href="#">Terms of Use</a>
-            <a className="font-label-md text-label-md text-outline hover:text-on-surface-variant transition-colors" href="#">Contact IT Support</a>
           </div>
         </div>
       </main>

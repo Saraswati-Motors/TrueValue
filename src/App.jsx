@@ -16,7 +16,6 @@ function App() {
   return (
     <Router>
       <Routes>
-        {/* Public Routes */}
         <Route path="/login" element={<Login />} />
 
         {/* Protected Employee Routes */}

@@ -8,6 +8,8 @@ export default function NavigationLayout() {
   const [userEmail, setUserEmail] = useState("employee@truevalue.com");
   const [userInitial, setUserInitial] = useState("E");
 
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   useEffect(() => {
     if (!supabase) {
       const mockSession = localStorage.getItem("truevalue_mock_session");
@@ -56,13 +58,94 @@ export default function NavigationLayout() {
           <Link to="/user-management" className={`font-label-lg px-2 py-1 transition-all ${isActive("/user-management") ? "text-primary border-b-2 border-primary font-bold" : "text-on-surface-variant hover:text-primary"}`}>Admin</Link>
         </nav>
 
-        <div className="flex items-center gap-4">
-          <button className="material-symbols-outlined text-primary hover:bg-surface-container transition-colors p-2 rounded-full active:scale-95 duration-100">
-            notifications
-          </button>
-          <div className="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container font-bold overflow-hidden border border-outline-variant">
+        <div className="flex items-center gap-4 relative">
+          <button 
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container font-bold overflow-hidden border border-outline-variant hover:bg-surface-container-high transition-colors active:scale-95 duration-100 outline-none cursor-pointer"
+            title="User Profile Menu"
+          >
             {userInitial}
-          </div>
+          </button>
+
+          {isMobileMenuOpen && (
+            <>
+              {/* Backdrop */}
+              <div 
+                className="fixed inset-0 z-40 bg-transparent"
+                onClick={() => setIsMobileMenuOpen(false)}
+              />
+              
+              {/* Dropdown Menu */}
+              <div className="absolute right-0 top-12 w-64 bg-white border border-outline-variant rounded-xl shadow-2xl py-3 z-50 flex flex-col gap-1">
+                <div className="px-4 py-2 flex flex-col gap-1 border-b border-outline-variant mb-2">
+                  <p className="font-label-lg text-text-main font-bold truncate">Saraswati Employee</p>
+                  <p className="font-body-sm text-on-surface-variant truncate text-xs">{userEmail}</p>
+                </div>
+
+                <Link 
+                  to="/" 
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={`flex items-center gap-3 px-4 py-2.5 hover:bg-surface-container transition-colors text-left ${isActive("/") ? "text-primary font-bold bg-primary-container/20" : "text-on-surface-variant"}`}
+                >
+                  <span className="material-symbols-outlined text-lg">dashboard</span>
+                  <span className="font-body-md text-sm">Dashboard</span>
+                </Link>
+                <Link 
+                  to="/inventory" 
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={`flex items-center gap-3 px-4 py-2.5 hover:bg-surface-container transition-colors text-left ${isActive("/inventory") ? "text-primary font-bold bg-primary-container/20" : "text-on-surface-variant"}`}
+                >
+                  <span className="material-symbols-outlined text-lg">directions_car</span>
+                  <span className="font-body-md text-sm">Inventory Management</span>
+                </Link>
+                <Link 
+                  to="/stock-log" 
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={`flex items-center gap-3 px-4 py-2.5 hover:bg-surface-container transition-colors text-left ${isActive("/stock-log") ? "text-primary font-bold bg-primary-container/20" : "text-on-surface-variant"}`}
+                >
+                  <span className="material-symbols-outlined text-lg">history</span>
+                  <span className="font-body-md text-sm">Recent Stock Log</span>
+                </Link>
+                <Link 
+                  to="/pending-requests" 
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={`flex items-center gap-3 px-4 py-2.5 hover:bg-surface-container transition-colors text-left ${isActive("/pending-requests") ? "text-primary font-bold bg-primary-container/20" : "text-on-surface-variant"}`}
+                >
+                  <span className="material-symbols-outlined text-lg">description</span>
+                  <span className="font-body-md text-sm">Pending Inquiries</span>
+                </Link>
+                <Link 
+                  to="/sales-analytics" 
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={`flex items-center gap-3 px-4 py-2.5 hover:bg-surface-container transition-colors text-left ${isActive("/sales-analytics") ? "text-primary font-bold bg-primary-container/20" : "text-on-surface-variant"}`}
+                >
+                  <span className="material-symbols-outlined text-lg">bar_chart</span>
+                  <span className="font-body-md text-sm">Sales Analytics</span>
+                </Link>
+                <Link 
+                  to="/user-management" 
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={`flex items-center gap-3 px-4 py-2.5 hover:bg-surface-container transition-colors text-left ${isActive("/user-management") ? "text-primary font-bold bg-primary-container/20" : "text-on-surface-variant"}`}
+                >
+                  <span className="material-symbols-outlined text-lg">group</span>
+                  <span className="font-body-md text-sm">User Management</span>
+                </Link>
+
+                <div className="border-t border-outline-variant mt-2 pt-2">
+                  <button 
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      handleLogout();
+                    }}
+                    className="flex items-center gap-3 px-4 py-2.5 w-full text-on-surface-variant hover:bg-error-container hover:text-on-error-container transition-colors text-left"
+                  >
+                    <span className="material-symbols-outlined text-lg">logout</span>
+                    <span className="font-body-md text-sm">Logout</span>
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </header>
 

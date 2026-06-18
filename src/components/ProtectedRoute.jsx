@@ -32,6 +32,46 @@ export default function ProtectedRoute({ children }) {
     };
   }, []);
 
+  // Inactivity logout timer (30 minutes)
+  useEffect(() => {
+    if (!session) return;
+
+    const INACTIVITY_LIMIT = 30 * 60 * 1000; // 30 minutes
+    let inactivityTimeout;
+
+    const handleLogout = async () => {
+      if (!supabase) {
+        localStorage.removeItem("truevalue_mock_session");
+        setSession(null);
+      } else {
+        await supabase.auth.signOut();
+        setSession(null);
+      }
+    };
+
+    const resetTimer = () => {
+      if (inactivityTimeout) clearTimeout(inactivityTimeout);
+      inactivityTimeout = setTimeout(handleLogout, INACTIVITY_LIMIT);
+    };
+
+    const events = ["mousemove", "keydown", "click", "scroll", "touchstart"];
+
+    // Initialize timer
+    resetTimer();
+
+    // Attach event listeners
+    events.forEach((event) => {
+      window.addEventListener(event, resetTimer);
+    });
+
+    return () => {
+      if (inactivityTimeout) clearTimeout(inactivityTimeout);
+      events.forEach((event) => {
+        window.removeEventListener(event, resetTimer);
+      });
+    };
+  }, [session]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-surface flex items-center justify-center">

@@ -1,5 +1,7 @@
-import React, { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "../lib/supabaseClient";
+
+
 
 export default function UserManagement() {
   const [employees, setEmployees] = useState([]);
@@ -10,10 +12,9 @@ export default function UserManagement() {
   // Form states
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState("Sales Associate");
-  const [employeeId, setEmployeeId] = useState("");
+  const [role, setRole] = useState("Employee");
+  const [tempPassword, setTempPassword] = useState("InitialPass2026");
   const [submitting, setSubmitting] = useState(false);
-
   // Load profiles
   const loadEmployees = async () => {
     setLoading(true);
@@ -22,9 +23,9 @@ export default function UserManagement() {
       let localEmployees = localStorage.getItem("truevalue_mock_employees");
       if (!localEmployees) {
         const defaultList = [
-          { id: "1", full_name: "Siddharth Mehta", employee_id: "TV-8802", role: "Inventory Manager", email: "s.mehta@truevalue.com", status: "Active" },
-          { id: "2", full_name: "Ananya Kapoor", employee_id: "TV-8845", role: "Senior Sales", email: "a.kapoor@truevalue.com", status: "Active" },
-          { id: "3", full_name: "Rahul Das", employee_id: "TV-8901", role: "Technician", email: "r.das@truevalue.com", status: "Offline" }
+          { id: "1", full_name: "Siddharth Mehta", role: "Inventory Manager", email: "s.mehta@truevalue.com", created_at: new Date().toISOString() },
+          { id: "2", full_name: "Ananya Kapoor", role: "Senior Sales", email: "a.kapoor@truevalue.com", created_at: new Date().toISOString() },
+          { id: "3", full_name: "Rahul Das", role: "Technician", email: "r.das@truevalue.com", created_at: new Date().toISOString() }
         ];
         localStorage.setItem("truevalue_mock_employees", JSON.stringify(defaultList));
         localEmployees = JSON.stringify(defaultList);
@@ -41,19 +42,11 @@ export default function UserManagement() {
 
       if (error) throw error;
 
-      if (data && data.length > 0) {
-        setEmployees(data);
-      } else {
-        // Fallback
-        setEmployees([]);
-      }
+      setEmployees(data || []);
     } catch (err) {
       console.error("Failed to load profiles:", err.message);
-      // Load local mock fallback
-      let localEmployees = localStorage.getItem("truevalue_mock_employees");
-      if (localEmployees) {
-        setEmployees(JSON.parse(localEmployees));
-      }
+      alert(`Error loading employees: ${err.message}`);
+      setEmployees([]);
     } finally {
       setLoading(false);
     }
@@ -76,9 +69,8 @@ export default function UserManagement() {
       full_name: fullName,
       email: email,
       role: role,
-      employee_id: employeeId || `TV-${Math.floor(1000 + Math.random() * 9000)}`,
-      status: "Active",
-      created_at: new Date().toISOString()
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     };
 
     if (!supabase) {
@@ -88,42 +80,46 @@ export default function UserManagement() {
       const updated = [{ ...newEmpData, id: Math.random().toString(36).substring(2, 9) }, ...list];
       localStorage.setItem("truevalue_mock_employees", JSON.stringify(updated));
       setEmployees(updated);
-      
+
       setFullName("");
       setEmail("");
-      setEmployeeId("");
+      setTempPassword("InitialPass2026");
       setIsModalOpen(false);
       setSubmitting(false);
       return;
     }
 
     try {
-      const { error } = await supabase
-        .from("profiles")
-        .insert([newEmpData]);
+      // Map the frontend role to the strict database enum ('Admin' or 'Employee')
+      const dbRole = role === "Admin" ? "Admin" : "Employee";
+
+      // Call the secure database function to register the employee in auth.users & public.profiles
+      const { error } = await supabase.rpc('create_employee', {
+        p_email: email,
+        p_password: tempPassword,
+        p_full_name: fullName,
+        p_role: dbRole
+      });
 
       if (error) throw error;
 
+      alert(`Successfully created account for ${fullName}!`);
       await loadEmployees();
-      
+
       setFullName("");
       setEmail("");
-      setEmployeeId("");
+      setTempPassword("InitialPass2026");
       setIsModalOpen(false);
     } catch (err) {
-      console.error("Failed to add employee:", err.message);
-      alert("Error adding employee to database. Saving locally.");
-      
-      // Save locally
-      const local = localStorage.getItem("truevalue_mock_employees");
-      const list = local ? JSON.parse(local) : [];
-      const updated = [{ ...newEmpData, id: Math.random().toString(36).substring(2, 9) }, ...list];
-      localStorage.setItem("truevalue_mock_employees", JSON.stringify(updated));
-      setEmployees(updated);
-      setIsModalOpen(false);
+      console.error("Failed to add employee. Full error:", err);
+      let errorMsg = err.message || "Unknown error";
+      if (err.description) errorMsg = err.description;
+      alert(`Error adding employee: ${errorMsg}`);
     } finally {
       setSubmitting(false);
     }
+
+
   };
 
   const handleRemoveEmployee = async (id) => {
@@ -149,14 +145,8 @@ export default function UserManagement() {
       await loadEmployees();
     } catch (err) {
       console.error("Failed to delete employee:", err.message);
-      alert("Error deleting employee. Deleting from local session state.");
-      const updated = employees.filter(e => e.id !== id);
-      setEmployees(updated);
+      alert(`Error deleting employee: ${err.message}`);
     }
-  };
-
-  const handleResetPassword = (email) => {
-    alert(`Password reset link has been dispatched to: ${email}`);
   };
 
   const filteredEmployees = useMemo(() => {
@@ -164,10 +154,9 @@ export default function UserManagement() {
       if (!searchQuery.trim()) return true;
       const query = searchQuery.toLowerCase();
       const name = (e.full_name || "").toLowerCase();
-      const empId = (e.employee_id || "").toLowerCase();
       const email = (e.email || "").toLowerCase();
       const role = (e.role || "").toLowerCase();
-      return name.includes(query) || empId.includes(query) || email.includes(query) || role.includes(query);
+      return name.includes(query) || email.includes(query) || role.includes(query);
     });
   }, [employees, searchQuery]);
 
@@ -179,7 +168,7 @@ export default function UserManagement() {
           <h1 className="font-headline-xl text-headline-xl-mobile md:text-headline-xl text-text-main mb-2">User Management</h1>
           <p className="text-body-lg text-on-surface-variant max-w-2xl">Manage employee access, update roles, and maintain secure credentials for the TrueValue ecosystem.</p>
         </div>
-        <button 
+        <button
           onClick={() => setIsModalOpen(true)}
           className="bg-primary text-on-primary px-6 py-3 rounded-lg font-label-lg flex items-center gap-2 shadow-md hover:shadow-lg active:scale-95 transition-all w-full md:w-auto justify-center h-12 shrink-0"
         >
@@ -200,16 +189,6 @@ export default function UserManagement() {
             {employees.filter(e => e.status === "Active").length}
           </p>
         </div>
-        <div className="bg-surface-container-lowest p-stack-md rounded-xl border border-outline-variant shadow-sm card-shadow">
-          <p className="text-body-sm text-on-surface-variant">Valuators &amp; Techs</p>
-          <p className="text-headline-md text-secondary font-bold">
-            {employees.filter(e => e.role === "Technician").length}
-          </p>
-        </div>
-        <div className="bg-surface-container-lowest p-stack-md rounded-xl border border-outline-variant shadow-sm card-shadow">
-          <p className="text-body-sm text-on-surface-variant">System Security</p>
-          <p className="text-headline-md text-attention-yellow font-bold">Stable</p>
-        </div>
       </div>
 
       {/* Directory Table Card */}
@@ -218,9 +197,9 @@ export default function UserManagement() {
           <h2 className="font-headline-md text-text-main">Employee Directory</h2>
           <div className="relative w-full md:w-72">
             <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
-            <input 
-              className="w-full pl-10 pr-4 py-2 bg-surface-container-low border border-outline-variant rounded-lg focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all text-body-md" 
-              placeholder="Search employees..." 
+            <input
+              className="w-full pl-10 pr-4 py-2 bg-surface-container-low border border-outline-variant rounded-lg focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-all text-body-md"
+              placeholder="Search employees..."
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -261,7 +240,6 @@ export default function UserManagement() {
                         </div>
                         <div>
                           <p className="font-label-lg text-text-main font-bold">{emp.full_name}</p>
-                          <p className="text-body-sm text-on-surface-variant">ID: {emp.employee_id || "TV-N/A"}</p>
                         </div>
                       </div>
                     </td>
@@ -279,16 +257,9 @@ export default function UserManagement() {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2 md:opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button 
-                          onClick={() => handleResetPassword(emp.email)}
-                          className="p-2 text-primary hover:bg-primary-fixed rounded-lg transition-colors" 
-                          title="Reset Password"
-                        >
-                          <span className="material-symbols-outlined text-[20px]">lock_reset</span>
-                        </button>
-                        <button 
+                        <button
                           onClick={() => handleRemoveEmployee(emp.id)}
-                          className="p-2 text-secondary hover:bg-secondary-fixed rounded-lg transition-colors" 
+                          className="p-2 text-secondary hover:bg-secondary-fixed rounded-lg transition-colors"
                           title="Remove User"
                         >
                           <span className="material-symbols-outlined text-[20px]">person_remove</span>
@@ -309,21 +280,21 @@ export default function UserManagement() {
           <div className="bg-surface w-full max-w-md mx-4 rounded-xl shadow-2xl overflow-hidden transform transition-transform duration-300">
             <div className="p-6 border-b border-outline-variant flex justify-between items-center">
               <h3 className="font-headline-md text-text-main font-bold">Add New Employee</h3>
-              <button 
+              <button
                 className="p-2 hover:bg-surface-container rounded-full transition-colors"
                 onClick={() => setIsModalOpen(false)}
               >
                 <span className="material-symbols-outlined">close</span>
               </button>
             </div>
-            
+
             <form onSubmit={handleAddEmployee} className="p-6 space-y-4">
               <div>
                 <label className="block font-label-lg mb-1 text-on-surface">Full Name</label>
-                <input 
-                  className="w-full px-4 py-3 border border-outline-variant rounded-lg bg-surface-container-low min-h-[48px] outline-none focus:ring-1 focus:ring-primary" 
-                  placeholder="e.g. Siddharth Mehta" 
-                  required 
+                <input
+                  className="w-full px-4 py-3 border border-outline-variant rounded-lg bg-surface-container-low min-h-[48px] outline-none focus:ring-1 focus:ring-primary"
+                  placeholder="e.g. Siddharth Mehta"
+                  required
                   type="text"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
@@ -333,10 +304,10 @@ export default function UserManagement() {
 
               <div>
                 <label className="block font-label-lg mb-1 text-on-surface">Official Email</label>
-                <input 
-                  className="w-full px-4 py-3 border border-outline-variant rounded-lg bg-surface-container-low min-h-[48px] outline-none focus:ring-1 focus:ring-primary" 
-                  placeholder="name@truevalue.com" 
-                  required 
+                <input
+                  className="w-full px-4 py-3 border border-outline-variant rounded-lg bg-surface-container-low min-h-[48px] outline-none focus:ring-1 focus:ring-primary"
+                  placeholder="name@truevalue.com"
+                  required
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -344,46 +315,32 @@ export default function UserManagement() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block font-label-lg mb-1 text-on-surface">Role</label>
-                  <select 
-                    className="w-full px-4 py-3 border border-outline-variant rounded-lg bg-surface-container-low min-h-[48px] outline-none focus:ring-1 focus:ring-primary"
-                    value={role}
-                    onChange={(e) => setRole(e.target.value)}
-                    disabled={submitting}
-                  >
-                    <option>Sales Associate</option>
-                    <option>Inventory Manager</option>
-                    <option>Technician</option>
-                    <option>Admin</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block font-label-lg mb-1 text-on-surface">Employee ID</label>
-                  <input 
-                    className="w-full px-4 py-3 border border-outline-variant rounded-lg bg-surface-container-low min-h-[48px] outline-none focus:ring-1 focus:ring-primary" 
-                    placeholder="TV-XXXX" 
-                    type="text"
-                    value={employeeId}
-                    onChange={(e) => setEmployeeId(e.target.value)}
-                    disabled={submitting}
-                  />
-                </div>
+              <div>
+                <label className="block font-label-lg mb-1 text-on-surface">Role</label>
+                <select
+                  className="w-full px-4 py-3 border border-outline-variant rounded-lg bg-surface-container-low min-h-[48px] outline-none focus:ring-1 focus:ring-primary"
+                  value={role}
+                  onChange={(e) => setRole(e.target.value)}
+                  disabled={submitting}
+                >
+                  <option>Employee</option>
+                  <option>Admin</option>
+                </select>
               </div>
 
               <div>
-                <label className="block font-label-lg mb-1 text-on-surface">Temporary Credentials</label>
+                <label className="block font-label-lg mb-1 text-on-surface">Temporary Credentials / Password</label>
                 <div className="relative">
-                  <input 
-                    className="w-full px-4 py-3 border border-outline-variant rounded-lg bg-surface-container-highest text-on-surface-variant font-mono outline-none" 
-                    readOnly 
-                    type="text" 
-                    value="InitialPass2026"
+                  <input
+                    className="w-full px-4 py-3 border border-outline-variant rounded-lg bg-surface-container-low min-h-[48px] outline-none focus:ring-1 focus:ring-primary font-mono"
+                    type="text"
+                    value={tempPassword}
+                    onChange={(e) => setTempPassword(e.target.value)}
+                    disabled={submitting}
                   />
-                  <span 
+                  <span
                     onClick={() => {
-                      navigator.clipboard.writeText("InitialPass2026");
+                      navigator.clipboard.writeText(tempPassword);
                       alert("Copied temporary credentials to clipboard!");
                     }}
                     className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-primary hover:text-primary-container"
@@ -391,11 +348,10 @@ export default function UserManagement() {
                     content_copy
                   </span>
                 </div>
-                <p className="text-body-sm text-on-surface-variant mt-2">Employee will be forced to change password at first login.</p>
               </div>
 
               <div className="pt-4 flex gap-3">
-                <button 
+                <button
                   className="flex-1 py-3 border border-primary text-primary rounded-lg font-label-lg hover:bg-primary-fixed transition-colors h-12"
                   type="button"
                   onClick={() => setIsModalOpen(false)}
@@ -403,8 +359,8 @@ export default function UserManagement() {
                 >
                   Cancel
                 </button>
-                <button 
-                  className="flex-1 py-3 bg-primary text-on-primary rounded-lg font-label-lg shadow-md hover:shadow-lg active:scale-95 transition-all h-12 flex items-center justify-center disabled:opacity-50" 
+                <button
+                  className="flex-1 py-3 bg-primary text-on-primary rounded-lg font-label-lg shadow-md hover:shadow-lg active:scale-95 transition-all h-12 flex items-center justify-center disabled:opacity-50"
                   type="submit"
                   disabled={submitting}
                 >

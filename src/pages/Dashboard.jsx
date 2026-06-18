@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { supabase, isSupabaseMockActive, setSupabaseForbidden } from "../lib/supabaseClient";
+import { supabase } from "../lib/supabaseClient";
 import { mockCars } from "../lib/mockData";
 
 export default function Dashboard() {
@@ -19,7 +19,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     // Load User Email
-    if (supabase && !isSupabaseMockActive()) {
+    if (supabase) {
       supabase.auth.getUser().then(({ data: { user } }) => {
         if (user) {
           const namePart = user.email.split("@")[0];
@@ -38,7 +38,7 @@ export default function Dashboard() {
 
     async function loadDashboardData() {
       setLoading(true);
-      if (isSupabaseMockActive()) {
+      if (!supabase) {
         // Mock fallback load
         setTotalVehicles(mockCars.filter(c => c.badge !== "Sold").length);
         setMonthlySales(mockCars.filter(c => c.badge === "Sold").length + 4);
@@ -70,15 +70,10 @@ export default function Dashboard() {
 
         if (!vError && vehiclesData && vehiclesData.length > 0) {
           activeVehicles = vehiclesData;
-          // Count sold
           soldCount = vehiclesData.filter(v => v.status?.toUpperCase() === "SOLD" || v.badge?.toUpperCase() === "SOLD").length;
-          // Sort by latest added for arrivals
           const sorted = [...vehiclesData].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
           arrivals = sorted.slice(0, 3);
         } else {
-          if (vError && (vError.status === 403 || vError.code === '42501' || vError.message?.toLowerCase().includes("permission"))) {
-            setSupabaseForbidden(true);
-          }
           const localVehicles = localStorage.getItem("truevalue_mock_vehicles");
           activeVehicles = localVehicles ? JSON.parse(localVehicles) : mockCars;
           soldCount = activeVehicles.filter(v => v.status?.toUpperCase() === "SOLD" || v.badge?.toUpperCase() === "SOLD").length;
@@ -88,31 +83,38 @@ export default function Dashboard() {
 
         setTotalVehicles(activeVehicles.filter(v => v.status?.toUpperCase() !== "SOLD" && v.badge?.toUpperCase() !== "SOLD").length);
         setMonthlySales(soldCount);
+        setRecentArrivals(arrivals);
+      } catch (err) {
+        console.error("Error loading vehicles:", err);
+        const localVehicles = localStorage.getItem("truevalue_mock_vehicles");
+        const activeVehicles = localVehicles ? JSON.parse(localVehicles) : mockCars;
+        setTotalVehicles(activeVehicles.filter(v => v.status?.toUpperCase() !== "SOLD" && v.badge?.toUpperCase() !== "SOLD").length);
+        setMonthlySales(activeVehicles.filter(v => v.status?.toUpperCase() === "SOLD" || v.badge?.toUpperCase() === "SOLD").length);
+        const sorted = [...activeVehicles].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+        setRecentArrivals(sorted.slice(0, 3));
+      }
 
+      try {
         // 2. Fetch inquiries count
         const { data: inquiriesData, error: iError } = await supabase
           .from("inquiries")
           .select("*");
 
-        if (!iError && inquiriesData && inquiriesData.length > 0) {
+        if (!iError && inquiriesData) {
           setInquiries(inquiriesData);
-          // Count pending inquiries (assuming status column might exist, or just all inquiries)
           const pending = inquiriesData.filter(i => !i.status || i.status?.toLowerCase() === "pending" || i.status?.toLowerCase() === "new").length;
-          setPendingInquiries(pending || inquiriesData.length);
+          setPendingInquiries(pending);
         } else {
-          if (iError && (iError.status === 403 || iError.code === '42501' || iError.message?.toLowerCase().includes("permission"))) {
-            setSupabaseForbidden(true);
-          }
-          const localInquiries = localStorage.getItem("truevalue_mock_inquiries");
-          const fallbackInquiries = localInquiries ? JSON.parse(localInquiries) : [
-            { created_at: new Date(Date.now() - 3600000 * 2).toISOString() },
-            { created_at: new Date(Date.now() - 3600000 * 26).toISOString() },
-            { created_at: new Date(Date.now() - 3600000 * 48).toISOString() }
-          ];
-          setInquiries(fallbackInquiries);
-          setPendingInquiries(fallbackInquiries.length);
+          setInquiries([]);
+          setPendingInquiries(0);
         }
+      } catch (err) {
+        console.error("Error loading inquiries:", err);
+        setInquiries([]);
+        setPendingInquiries(0);
+      }
 
+      try {
         // 3. Fetch sales logs
         const { data: salesLogsData, error: sError } = await supabase
           .from("sales_logs")
@@ -121,40 +123,13 @@ export default function Dashboard() {
         if (!sError && salesLogsData && salesLogsData.length > 0) {
           setSalesLogs(salesLogsData);
         } else {
-          if (sError && (sError.status === 403 || sError.code === '42501' || sError.message?.toLowerCase().includes("permission"))) {
-            setSupabaseForbidden(true);
-          }
           const localLogs = localStorage.getItem("truevalue_mock_sales_logs");
           setSalesLogs(localLogs ? JSON.parse(localLogs) : []);
         }
-
-        setRecentArrivals(arrivals);
       } catch (err) {
-        console.error("Error loading dashboard metrics, using fallback:", err);
-        if (err.status === 403 || err.code === '42501' || err.message?.toLowerCase().includes("permission")) {
-          setSupabaseForbidden(true);
-        }
-        const localVehicles = localStorage.getItem("truevalue_mock_vehicles");
-        const activeVehicles = localVehicles ? JSON.parse(localVehicles) : mockCars;
-        setTotalVehicles(activeVehicles.filter(v => v.status?.toUpperCase() !== "SOLD" && v.badge?.toUpperCase() !== "SOLD").length);
-        
-        const soldCount = activeVehicles.filter(v => v.status?.toUpperCase() === "SOLD" || v.badge?.toUpperCase() === "SOLD").length;
-        setMonthlySales(soldCount);
-
-        const localInquiries = localStorage.getItem("truevalue_mock_inquiries");
-        const fallbackInquiries = localInquiries ? JSON.parse(localInquiries) : [
-          { created_at: new Date(Date.now() - 3600000 * 2).toISOString() },
-          { created_at: new Date(Date.now() - 3600000 * 26).toISOString() },
-          { created_at: new Date(Date.now() - 3600000 * 48).toISOString() }
-        ];
-        setInquiries(fallbackInquiries);
-        setPendingInquiries(fallbackInquiries.length);
-
+        console.error("Error loading sales logs:", err);
         const localLogs = localStorage.getItem("truevalue_mock_sales_logs");
         setSalesLogs(localLogs ? JSON.parse(localLogs) : []);
-
-        const sorted = [...activeVehicles].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-        setRecentArrivals(sorted.slice(0, 3));
       } finally {
         setLoading(false);
       }
