@@ -68,7 +68,7 @@ export default function Inventory() {
 
   const calculateStats = (data) => {
     const total = data.length;
-    const sold = data.filter(v => v.status?.toUpperCase() === "SOLD" || v.badge?.toUpperCase() === "SOLD").length;
+    const sold = data.filter(v => (v.status || "").toUpperCase() === "SOLD").length;
     const available = total - sold;
     setStats({ total, available, sold });
   };
@@ -83,8 +83,8 @@ export default function Inventory() {
       if (localVehicles) {
         const parsed = JSON.parse(localVehicles);
         const updated = parsed.map(v => {
-          if (v.id === id) {
-            return { ...v, status: "SOLD", badge: "SOLD" };
+          if (v.vehicle_id === id) {
+            return { ...v, status: "Sold" };
           }
           return v;
         });
@@ -95,10 +95,10 @@ export default function Inventory() {
         // Also log to local sales_logs
         let localLogs = localStorage.getItem("truevalue_mock_sales_logs");
         const logItem = {
-          id: Math.random().toString(36).substring(2, 9),
+          sale_id: Math.random().toString(36).substring(2, 9),
           vehicle_id: id,
           sale_date: new Date().toISOString(),
-          price_lakh: parsed.find(v => v.id === id)?.price_lakh || 0
+          sold_price: parsed.find(v => v.vehicle_id === id)?.price || 0
         };
         const currentLogs = localLogs ? JSON.parse(localLogs) : [];
         localStorage.setItem("truevalue_mock_sales_logs", JSON.stringify([logItem, ...currentLogs]));
@@ -109,21 +109,21 @@ export default function Inventory() {
     try {
       const { error } = await supabase
         .from("vehicles")
-        .update({ status: "SOLD", badge: "SOLD" })
-        .eq("id", id);
+        .update({ status: "Sold" })
+        .eq("vehicle_id", id);
 
       if (error) {
         throw error;
       }
 
       // Log to sales_logs
-      const car = vehicles.find(v => v.id === id);
+      const car = vehicles.find(v => v.vehicle_id === id);
       if (car) {
         await supabase
           .from("sales_logs")
           .insert([{
             vehicle_id: id,
-            price_lakh: car.price_lakh,
+            sold_price: car.price,
             sale_date: new Date().toISOString()
           }]);
       }
@@ -135,8 +135,8 @@ export default function Inventory() {
       alert("Error updating database. Falling back to local state update.");
       // Fallback update
       const updated = vehicles.map(v => {
-        if (v.id === id) {
-          return { ...v, status: "SOLD", badge: "SOLD" };
+        if (v.vehicle_id === id) {
+          return { ...v, status: "Sold" };
         }
         return v;
       });
@@ -149,11 +149,11 @@ export default function Inventory() {
   const filteredVehicles = useMemo(() => {
     return vehicles.filter(v => {
       // Match status filter
-      const vehicleStatus = (v.status || v.badge || "AVAILABLE").toUpperCase();
+      const vehicleStatus = (v.status || "").toUpperCase();
       if (statusFilter !== "ALL") {
         if (statusFilter === "AVAILABLE" && vehicleStatus === "SOLD") return false;
         if (statusFilter === "SOLD" && vehicleStatus !== "SOLD") return false;
-        if (statusFilter === "VALUATION" && vehicleStatus !== "VALUATION" && vehicleStatus !== "UNDER VALUATION") return false;
+        if (statusFilter === "VALUATION" && vehicleStatus !== "RESERVED") return false;
       }
 
       // Match search query (make, model, variant, or locations)
@@ -162,7 +162,7 @@ export default function Inventory() {
         const make = (v.make || "").toLowerCase();
         const model = (v.model || "").toLowerCase();
         const variant = (v.variant || "").toLowerCase();
-        const location = (v.location || "").toLowerCase();
+        const location = (v.history_points?.location || v.location || "").toLowerCase();
         return make.includes(query) || model.includes(query) || variant.includes(query) || location.includes(query);
       }
 
@@ -264,18 +264,19 @@ export default function Inventory() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter">
           {filteredVehicles.map((car) => {
-            const isSold = (car.status || car.badge || "").toUpperCase() === "SOLD";
-            const isValuation = (car.status || car.badge || "").toUpperCase() === "VALUATION" || (car.status || car.badge || "").toUpperCase() === "UNDER VALUATION";
+            const isSold = (car.status || "").toUpperCase() === "SOLD";
+            const isValuation = (car.status || "").toUpperCase() === "RESERVED";
+            const carImg = car.images?.[0] || car.image_url || "https://images.unsplash.com/photo-1542282088-fe8426682b8f";
             return (
               <div 
-                key={car.id} 
-                onClick={() => navigate(`/vehicle/${car.id}`)}
+                key={car.vehicle_id} 
+                onClick={() => navigate(`/vehicle/${car.vehicle_id}`)}
                 className={`bg-white border border-outline-variant rounded-xl overflow-hidden card-shadow flex flex-col group cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5 ${isSold ? "opacity-90" : ""}`}
               >
                 <div className={`aspect-[16/9] relative bg-surface-container-highest overflow-hidden ${isSold ? "grayscale" : ""}`}>
                   <img 
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
-                    src={car.image_url || "https://images.unsplash.com/photo-1542282088-fe8426682b8f"} 
+                    src={carImg} 
                     alt={`${car.make} ${car.model}`}
                   />
                   <div className="absolute top-4 left-4">
@@ -286,7 +287,7 @@ export default function Inventory() {
                         ? "bg-attention-yellow text-on-surface" 
                         : "bg-tertiary"
                     }`}>
-                      {car.status || car.badge || "AVAILABLE"}
+                      {car.status || "Available"}
                     </span>
                   </div>
                 </div>
@@ -297,14 +298,14 @@ export default function Inventory() {
                       {car.make} {car.model}
                     </h3>
                     <span className={`font-price-display text-price-display shrink-0 ${isSold ? "text-on-surface-variant" : "text-primary"}`}>
-                      ₹{car.price_lakh}L
+                      ₹{car.price}L
                     </span>
                   </div>
 
                   <div className="flex gap-4 mb-stack-md text-on-surface-variant font-body-sm">
                     <div className="flex items-center gap-1">
                       <span className="material-symbols-outlined text-[18px]">speed</span>
-                      <span>{car.mileage_km ? car.mileage_km.toLocaleString() : "0"} km</span>
+                      <span>{car.kilometers_driven ? car.kilometers_driven.toLocaleString() : "0"} km</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <span className="material-symbols-outlined text-[18px]">local_gas_station</span>
@@ -316,7 +317,7 @@ export default function Inventory() {
                     {!isSold ? (
                       <button 
                         className="flex-1 bg-primary text-on-primary py-2.5 rounded font-label-lg hover:bg-primary-container transition-colors active:scale-95 text-xs font-bold"
-                        onClick={(e) => handleMarkAsSold(car.id, e)}
+                        onClick={(e) => handleMarkAsSold(car.vehicle_id, e)}
                       >
                         MARK AS SOLD
                       </button>
@@ -331,7 +332,7 @@ export default function Inventory() {
                     <button 
                       onClick={(e) => {
                         e.stopPropagation();
-                        navigate(`/vehicle/${car.id}`);
+                        navigate(`/vehicle/${car.vehicle_id}`);
                       }}
                       className="px-3 border border-outline-variant rounded hover:bg-surface-container-high transition-colors"
                     >

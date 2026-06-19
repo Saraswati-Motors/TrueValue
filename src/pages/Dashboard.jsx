@@ -17,6 +17,85 @@ export default function Dashboard() {
   const [salesLogs, setSalesLogs] = useState([]);
   const [inquiries, setInquiries] = useState([]);
 
+  const hasAutoDownloaded = React.useRef(false);
+
+  // Auto-backup when inquiries hit or exceed 500
+  useEffect(() => {
+    if (inquiries.length >= 500 && !hasAutoDownloaded.current) {
+      handleExportCSV();
+      hasAutoDownloaded.current = true;
+    }
+  }, [inquiries]);
+
+  const handleExportCSV = () => {
+    if (inquiries.length === 0) return;
+    const csvContent = [
+      ["Inquiry ID", "Customer Name", "Phone Number", "Email", "Vehicle Interest", "Location", "Status", "Date Added"],
+      ...inquiries.map(i => {
+        const vehicleName = i.vehicles
+          ? `${i.vehicles.make} ${i.vehicles.model} ${i.vehicles.variant || ""}`.trim()
+          : i.vehicle_name || "General Inquiry";
+        const customerName = i.customer_name || i.full_name || "Valued Customer";
+        const customerEmail = i.email || i.email_address || "";
+        const status = i.status === "Contacted" ? "In Progress" : i.status === "Closed" ? "Resolved" : (i.status || "New");
+        const location = i.location || i.vehicles?.location || i.vehicles?.history_points?.location || "Jhunsi, Prayagraj";
+        return [
+          i.inquiry_id || i.id,
+          customerName,
+          i.phone_number,
+          customerEmail,
+          vehicleName,
+          location,
+          status,
+          i.created_at || "N/A"
+        ];
+      })
+    ]
+      .map(row => row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `truevalue_inquiries_backup_${Date.now()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleClearInquiries = async () => {
+    if (!window.confirm("Are you sure you want to clear all inquiries? This action cannot be undone. Please ensure you have exported a CSV backup first.")) {
+      return;
+    }
+
+    if (!supabase) {
+      localStorage.setItem("truevalue_mock_inquiries", JSON.stringify([]));
+      setInquiries([]);
+      setPendingInquiries(0);
+      alert("Mock inquiries database cleared.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const { error } = await supabase
+        .from("inquiries")
+        .delete()
+        .neq("inquiry_id", "00000000-0000-0000-0000-000000000000");
+
+      if (error) throw error;
+      setInquiries([]);
+      setPendingInquiries(0);
+      alert("Inquiries database cleared successfully.");
+    } catch (err) {
+      console.error("Error clearing inquiries:", err);
+      alert("Failed to clear inquiries: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     // Load User Email
     if (supabase) {
@@ -42,15 +121,31 @@ export default function Dashboard() {
         // Mock fallback load
         setTotalVehicles(mockCars.filter(c => c.badge !== "Sold").length);
         setMonthlySales(mockCars.filter(c => c.badge === "Sold").length + 4);
-        setPendingInquiries(15);
         setRecentArrivals(mockCars.slice(0, 3));
         
         const localInquiries = localStorage.getItem("truevalue_mock_inquiries");
-        setInquiries(localInquiries ? JSON.parse(localInquiries) : [
-          { created_at: new Date(Date.now() - 3600000 * 2).toISOString() },
-          { created_at: new Date(Date.now() - 3600000 * 26).toISOString() },
-          { created_at: new Date(Date.now() - 3600000 * 48).toISOString() }
-        ]);
+        let parsedInquiries = localInquiries ? JSON.parse(localInquiries) : [];
+        if (parsedInquiries.length < 10) {
+          const mockInquiriesList = [];
+          for (let i = 1; i <= 495; i++) {
+            mockInquiriesList.push({
+              inquiry_id: String(i),
+              customer_name: i === 1 ? "Arjun Mehta" : i === 2 ? "Priya Sharma" : i === 3 ? "Rajesh Kumar" : `Customer ${i}`,
+              vehicle_name: i % 3 === 0 ? "2021 Maruti Suzuki Swift" : i % 2 === 0 ? "2023 Maruti Suzuki Vitara" : "2022 Maruti Suzuki Ciaz",
+              phone_number: `+91 98765 ${String(10000 + i).slice(1)}`,
+              email: `customer${i}@example.com`,
+              created_at: new Date(Date.now() - 3600000 * (i % 72)).toISOString(),
+              status: i % 15 === 0 ? "Booked" : i % 25 === 0 ? "Lost" : i % 5 === 0 ? "Contacted" : "New",
+              lost_reason: i % 25 === 0 ? "Price too high" : undefined,
+              location: i % 3 === 0 ? "Phaphamau, Prayagraj" : i % 2 === 0 ? "Civil Lines, Prayagraj" : "Jhunsi, Prayagraj"
+            });
+          }
+          localStorage.setItem("truevalue_mock_inquiries", JSON.stringify(mockInquiriesList));
+          parsedInquiries = mockInquiriesList;
+        }
+        setInquiries(parsedInquiries);
+        const pending = parsedInquiries.filter(i => !i.status || i.status?.toLowerCase() === "contacted" || i.status?.toLowerCase() === "in progress" || i.status?.toLowerCase() === "new").length;
+        setPendingInquiries(pending);
 
         const localLogs = localStorage.getItem("truevalue_mock_sales_logs");
         setSalesLogs(localLogs ? JSON.parse(localLogs) : []);
@@ -70,18 +165,18 @@ export default function Dashboard() {
 
         if (!vError && vehiclesData && vehiclesData.length > 0) {
           activeVehicles = vehiclesData;
-          soldCount = vehiclesData.filter(v => v.status?.toUpperCase() === "SOLD" || v.badge?.toUpperCase() === "SOLD").length;
+          soldCount = vehiclesData.filter(v => v.status?.toUpperCase() === "SOLD" || v.history_points?.badge?.toUpperCase() === "SOLD").length;
           const sorted = [...vehiclesData].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
           arrivals = sorted.slice(0, 3);
         } else {
           const localVehicles = localStorage.getItem("truevalue_mock_vehicles");
           activeVehicles = localVehicles ? JSON.parse(localVehicles) : mockCars;
-          soldCount = activeVehicles.filter(v => v.status?.toUpperCase() === "SOLD" || v.badge?.toUpperCase() === "SOLD").length;
+          soldCount = activeVehicles.filter(v => v.status?.toUpperCase() === "SOLD" || v.history_points?.badge?.toUpperCase() === "SOLD" || v.badge?.toUpperCase() === "SOLD").length;
           const sorted = [...activeVehicles].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
           arrivals = sorted.slice(0, 3);
         }
 
-        setTotalVehicles(activeVehicles.filter(v => v.status?.toUpperCase() !== "SOLD" && v.badge?.toUpperCase() !== "SOLD").length);
+        setTotalVehicles(activeVehicles.filter(v => v.status?.toUpperCase() !== "SOLD" && v.history_points?.badge?.toUpperCase() !== "SOLD").length);
         setMonthlySales(soldCount);
         setRecentArrivals(arrivals);
       } catch (err) {
@@ -98,11 +193,11 @@ export default function Dashboard() {
         // 2. Fetch inquiries count
         const { data: inquiriesData, error: iError } = await supabase
           .from("inquiries")
-          .select("*");
+          .select("*, vehicles(make, model, variant, location)");
 
         if (!iError && inquiriesData) {
           setInquiries(inquiriesData);
-          const pending = inquiriesData.filter(i => !i.status || i.status?.toLowerCase() === "pending" || i.status?.toLowerCase() === "new").length;
+          const pending = inquiriesData.filter(i => !i.status || i.status?.toLowerCase() === "contacted" || i.status?.toLowerCase() === "in progress" || i.status?.toLowerCase() === "new").length;
           setPendingInquiries(pending);
         } else {
           setInquiries([]);
@@ -207,6 +302,67 @@ export default function Dashboard() {
 
   return (
     <div className="max-w-container-max-width mx-auto w-full">
+      {/* Capacity Alert Banner */}
+      {inquiries.length >= 490 && inquiries.length < 500 && (
+        <div className="mb-6 p-4 bg-yellow-50 border-l-4 border-yellow-500 rounded-r-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+          <div className="flex items-start gap-3">
+            <span className="material-symbols-outlined text-yellow-600 mt-0.5">warning</span>
+            <div>
+              <h4 className="font-bold text-yellow-800">Database Limit Warning ({inquiries.length}/500)</h4>
+              <p className="text-sm text-yellow-700 font-body-md">
+                The customer inquiries database is approaching its 500 limit. Please export a backup and clear old queries to avoid disruption.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 shrink-0">
+            <button
+              onClick={handleExportCSV}
+              className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded text-sm font-semibold transition-colors flex items-center gap-1.5"
+            >
+              <span className="material-symbols-outlined text-sm">download</span>
+              Export Backup
+            </button>
+            <button
+              onClick={handleClearInquiries}
+              className="px-4 py-2 border border-yellow-600 text-yellow-700 hover:bg-yellow-100 rounded text-sm font-semibold transition-colors flex items-center gap-1.5 bg-white"
+            >
+              <span className="material-symbols-outlined text-sm">delete_sweep</span>
+              Clear Database
+            </button>
+          </div>
+        </div>
+      )}
+
+      {inquiries.length >= 500 && (
+        <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-r-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+          <div className="flex items-start gap-3">
+            <span className="material-symbols-outlined text-red-600 mt-0.5">error_outline</span>
+            <div>
+              <h4 className="font-bold text-red-800">Database Capacity Exceeded ({inquiries.length}/500)</h4>
+              <p className="text-sm text-red-700 font-body-md">
+                The database has reached the maximum capacity of 500. Further customer inquiries are blocked until the database is cleared.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 shrink-0">
+            <button
+              onClick={handleExportCSV}
+              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded text-sm font-semibold transition-colors flex items-center gap-1.5"
+            >
+              <span className="material-symbols-outlined text-sm">download</span>
+              Export Backup
+            </button>
+            <button
+              onClick={handleClearInquiries}
+              className="px-4 py-2 border border-red-600 text-red-700 hover:bg-red-100 rounded text-sm font-semibold transition-colors flex items-center gap-1.5 bg-white"
+            >
+              <span className="material-symbols-outlined text-sm">delete_sweep</span>
+              Clear Database
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Welcome Header */}
       <section className="mb-stack-lg">
         <h1 className="font-headline-xl text-headline-xl-mobile md:text-headline-xl text-text-main mb-2">
@@ -285,38 +441,45 @@ export default function Dashboard() {
             </button>
           </div>
           <div className="space-y-4">
-            {recentArrivals.map((car, idx) => (
-              <div
-                key={car.id || idx}
-                className="flex items-center gap-4 p-3 rounded-lg hover:bg-surface transition-colors border-b border-surface-container last:border-0 cursor-pointer"
-                onClick={() => navigate(`/vehicle/${car.id}`)}
-              >
-                <div className="w-16 h-12 bg-surface-variant rounded-lg overflow-hidden shrink-0">
-                  <img
-                    className="w-full h-full object-cover"
-                    src={car.image_url || "https://images.unsplash.com/photo-1542282088-fe8426682b8f"}
-                    alt={`${car.make} ${car.model}`}
-                  />
+            {recentArrivals.map((car, idx) => {
+              const carId = car.vehicle_id || car.id;
+              const carImg = car.images?.[0] || car.image_url || "https://images.unsplash.com/photo-1542282088-fe8426682b8f";
+              const km = car.kilometers_driven || car.mileage_km || 0;
+              const price = car.price || car.price_lakh || 0;
+              const badge = car.history_points?.badge || car.badge || "READY";
+              return (
+                <div
+                  key={carId || idx}
+                  className="flex items-center gap-4 p-3 rounded-lg hover:bg-surface transition-colors border-b border-surface-container last:border-0 cursor-pointer"
+                  onClick={() => navigate(`/vehicle/${carId}`)}
+                >
+                  <div className="w-16 h-12 bg-surface-variant rounded-lg overflow-hidden shrink-0">
+                    <img
+                      className="w-full h-full object-cover"
+                      src={carImg}
+                      alt={`${car.make} ${car.model}`}
+                    />
+                  </div>
+                  <div className="flex-grow">
+                    <p className="font-label-lg text-text-main">{car.make} {car.model} - {car.year}</p>
+                    <p className="text-[12px] text-on-surface-variant">
+                      {car.fuel_type} • {km ? km.toLocaleString() : "0"} KM • {car.transmission}
+                    </p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="font-price-display text-primary text-lg">₹{price}L</p>
+                    <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${(car.status || badge)?.toUpperCase() === "SOLD"
+                      ? "bg-red-100 text-red-800"
+                      : (car.status || badge)?.toUpperCase() === "VALUATION" || (car.status || badge)?.toUpperCase() === "RESERVED"
+                        ? "bg-yellow-100 text-yellow-800"
+                        : "bg-green-100 text-green-800"
+                      }`}>
+                      {car.status || badge}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex-grow">
-                  <p className="font-label-lg text-text-main">{car.make} {car.model} - {car.year}</p>
-                  <p className="text-[12px] text-on-surface-variant">
-                    {car.fuel_type} • {car.mileage_km ? car.mileage_km.toLocaleString() : "0"} KM • {car.transmission}
-                  </p>
-                </div>
-                <div className="text-right shrink-0">
-                  <p className="font-price-display text-primary text-lg">₹{car.price_lakh}L</p>
-                  <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${(car.status || car.badge)?.toUpperCase() === "SOLD"
-                    ? "bg-red-100 text-red-800"
-                    : (car.status || car.badge)?.toUpperCase() === "VALUATION"
-                      ? "bg-yellow-100 text-yellow-800"
-                      : "bg-green-100 text-green-800"
-                    }`}>
-                    {car.status || car.badge || "READY"}
-                  </span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>

@@ -52,11 +52,11 @@ export default function StockLog() {
   const filteredVehicles = useMemo(() => {
     return vehicles.filter(v => {
       // Status filter mapping
-      const status = (v.status || v.badge || "AVAILABLE").toUpperCase();
+      const status = (v.status || v.history_points?.badge || v.badge || "AVAILABLE").toUpperCase();
       if (statusFilter !== "ALL") {
-        if (statusFilter === "IN STOCK" && (status === "SOLD" || status === "VALUATION" || status === "UNDER VALUATION")) return false;
+        if (statusFilter === "IN STOCK" && (status === "SOLD" || status === "RESERVED" || status === "VALUATION" || status === "UNDER VALUATION")) return false;
         if (statusFilter === "SOLD" && status !== "SOLD") return false;
-        if (statusFilter === "VALUATION" && (status !== "VALUATION" && status !== "UNDER VALUATION")) return false;
+        if (statusFilter === "VALUATION" && (status !== "VALUATION" && status !== "UNDER VALUATION" && status !== "RESERVED")) return false;
       }
 
       // Search match
@@ -76,9 +76,15 @@ export default function StockLog() {
   const handleExportCSV = () => {
     const csvContent = [
       ["ID", "Make", "Model", "Variant", "Year", "Mileage (KM)", "Fuel Type", "Transmission", "Price (Lakh)", "Status", "Date Added"],
-      ...filteredVehicles.map(v => [
-        v.id, v.make, v.model, v.variant, v.year, v.mileage_km, v.fuel_type, v.transmission, v.price_lakh, v.status || v.badge || "Available", v.created_at || "N/A"
-      ])
+      ...filteredVehicles.map(v => {
+        const carId = v.vehicle_id || v.id;
+        const km = v.kilometers_driven || v.mileage_km || 0;
+        const price = v.price || v.price_lakh || 0;
+        const badge = v.history_points?.badge || v.badge || "Available";
+        return [
+          carId, v.make, v.model, v.variant, v.year, km, v.fuel_type, v.transmission, price, v.status || badge, v.created_at || "N/A"
+        ];
+      })
     ]
       .map(e => e.join(","))
       .join("\n");
@@ -152,20 +158,24 @@ export default function StockLog() {
       ) : (
         <section className="flex flex-col gap-stack-md">
           {filteredVehicles.map((car, index) => {
-            const status = (car.status || car.badge || "AVAILABLE").toUpperCase();
+            const carId = car.vehicle_id || car.id;
+            const status = (car.status || car.history_points?.badge || car.badge || "AVAILABLE").toUpperCase();
             const isSold = status === "SOLD";
-            const isValuation = status === "VALUATION" || status === "UNDER VALUATION";
+            const isValuation = status === "VALUATION" || status === "UNDER VALUATION" || status === "RESERVED";
+            const carImg = car.images?.[0] || car.image_url || "https://images.unsplash.com/photo-1542282088-fe8426682b8f";
+            const km = car.kilometers_driven || car.mileage_km || 0;
+            const price = car.price || car.price_lakh || 0;
             return (
               <div 
-                key={car.id || index}
+                key={carId || index}
                 className="arrival-card bg-white border border-outline-variant p-stack-md rounded-xl shadow-sm hover:shadow-md flex flex-col md:flex-row md:items-center gap-stack-md transition-all cursor-pointer"
-                onClick={() => navigate(`/vehicle/${car.id}`)}
+                onClick={() => navigate(`/vehicle/${carId}`)}
               >
                 <div className={`w-full md:w-48 h-32 rounded-lg overflow-hidden shrink-0 ${isSold ? "grayscale" : ""}`}>
                   <img 
                     alt={`${car.make} ${car.model}`} 
                     className="w-full h-full object-cover" 
-                    src={car.image_url || "https://images.unsplash.com/photo-1542282088-fe8426682b8f"}
+                    src={carImg}
                   />
                 </div>
                 <div className="flex-grow flex flex-col gap-1">
@@ -195,7 +205,7 @@ export default function StockLog() {
                     </div>
                     <div className="flex items-center gap-1">
                       <span className="material-symbols-outlined text-[18px]">speed</span>
-                      {car.mileage_km ? car.mileage_km.toLocaleString() : "0"} KM
+                      {km ? km.toLocaleString() : "0"} KM
                     </div>
                   </div>
                 </div>
@@ -203,12 +213,12 @@ export default function StockLog() {
                   {isValuation ? (
                     <span className="font-price-display text-price-display text-on-surface-variant italic">Valuation Pending</span>
                   ) : (
-                    <span className="font-price-display text-price-display text-secondary">₹{car.price_lakh} Lakh</span>
+                    <span className="font-price-display text-price-display text-secondary">₹{price} Lakh</span>
                   )}
                   <button 
                     onClick={(e) => {
                       e.stopPropagation();
-                      navigate(`/vehicle/${car.id}`);
+                      navigate(`/vehicle/${carId}`);
                     }}
                     className="px-6 py-2 bg-primary text-white font-label-lg rounded hover:bg-primary-container transition-colors active:scale-95"
                   >

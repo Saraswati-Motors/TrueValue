@@ -18,10 +18,10 @@ export default function VehicleDetails() {
         // Mock fallback load
         const localVehicles = localStorage.getItem("truevalue_mock_vehicles");
         const carsList = localVehicles ? JSON.parse(localVehicles) : mockCars;
-        const found = carsList.find(c => String(c.id) === String(id));
+        const found = carsList.find(c => String(c.vehicle_id || c.id) === String(id));
         setCar(found || null);
         if (found) {
-          setActiveImage(found.image_url);
+          setActiveImage(found.images?.[0] || found.image_url);
         }
         setLoading(false);
         return;
@@ -31,32 +31,32 @@ export default function VehicleDetails() {
         const { data, error } = await supabase
           .from("vehicles")
           .select("*")
-          .eq("id", id)
+          .eq("vehicle_id", id)
           .maybeSingle();
 
         if (error) throw error;
 
         if (data) {
           setCar(data);
-          setActiveImage(data.image_url);
+          setActiveImage(data.images?.[0] || data.image_url);
         } else {
           // Check local storage mock if database doesn't have it
           const localVehicles = localStorage.getItem("truevalue_mock_vehicles");
           const carsList = localVehicles ? JSON.parse(localVehicles) : mockCars;
-          const found = carsList.find(c => String(c.id) === String(id));
+          const found = carsList.find(c => String(c.vehicle_id || c.id) === String(id));
           setCar(found || null);
           if (found) {
-            setActiveImage(found.image_url);
+            setActiveImage(found.images?.[0] || found.image_url);
           }
         }
       } catch (err) {
         console.error("Error loading vehicle details, falling back to mock:", err);
         const localVehicles = localStorage.getItem("truevalue_mock_vehicles");
         const carsList = localVehicles ? JSON.parse(localVehicles) : mockCars;
-        const found = carsList.find(c => String(c.id) === String(id));
+        const found = carsList.find(c => String(c.vehicle_id || c.id) === String(id));
         setCar(found || null);
         if (found) {
-          setActiveImage(found.image_url);
+          setActiveImage(found.images?.[0] || found.image_url);
         }
       } finally {
         setLoading(false);
@@ -78,8 +78,8 @@ export default function VehicleDetails() {
       if (localVehicles) {
         const parsed = JSON.parse(localVehicles);
         const updated = parsed.map(v => {
-          if (String(v.id) === String(car.id)) {
-            return { ...v, status: "SOLD", badge: "SOLD" };
+          if (String(v.vehicle_id || v.id) === String(car.vehicle_id || car.id)) {
+            return { ...v, status: "Sold" };
           }
           return v;
         });
@@ -88,15 +88,15 @@ export default function VehicleDetails() {
         // Also log to local sales_logs
         let localLogs = localStorage.getItem("truevalue_mock_sales_logs");
         const logItem = {
-          id: Math.random().toString(36).substring(2, 9),
-          vehicle_id: car.id,
+          sale_id: Math.random().toString(36).substring(2, 9),
+          vehicle_id: car.vehicle_id || car.id,
           sale_date: new Date().toISOString(),
-          price_lakh: car.price_lakh
+          sold_price: car.price || car.price_lakh || 0
         };
         const currentLogs = localLogs ? JSON.parse(localLogs) : [];
         localStorage.setItem("truevalue_mock_sales_logs", JSON.stringify([logItem, ...currentLogs]));
 
-        setCar({ ...car, status: "SOLD", badge: "SOLD" });
+        setCar({ ...car, status: "Sold" });
       }
       setSubmitting(false);
       return;
@@ -105,8 +105,8 @@ export default function VehicleDetails() {
     try {
       const { error } = await supabase
         .from("vehicles")
-        .update({ status: "SOLD", badge: "SOLD" })
-        .eq("id", car.id);
+        .update({ status: "Sold" })
+        .eq("vehicle_id", car.vehicle_id);
 
       if (error) throw error;
 
@@ -114,16 +114,16 @@ export default function VehicleDetails() {
       await supabase
         .from("sales_logs")
         .insert([{
-          vehicle_id: car.id,
-          price_lakh: car.price_lakh,
+          vehicle_id: car.vehicle_id,
+          sold_price: car.price,
           sale_date: new Date().toISOString()
         }]);
 
-      setCar({ ...car, status: "SOLD", badge: "SOLD" });
+      setCar({ ...car, status: "Sold" });
     } catch (err) {
       console.error("Failed to mark sold:", err.message);
       alert("Error updating database. Updating locally.");
-      setCar({ ...car, status: "SOLD", badge: "SOLD" });
+      setCar({ ...car, status: "Sold" });
     } finally {
       setSubmitting(false);
     }
@@ -151,8 +151,23 @@ export default function VehicleDetails() {
     );
   }
 
-  const isSold = (car.status || car.badge || "").toUpperCase() === "SOLD";
-  const imagesList = [car.image_url, ...(car.gallery || [])].filter(Boolean);
+  const isSold = (car.status || "").toUpperCase() === "SOLD";
+  const imagesList = car.images && car.images.length > 0 ? car.images : [car.image_url].filter(Boolean);
+
+  const getMetadata = (key, fallback) => {
+    if (car.history_points && typeof car.history_points === "object" && !Array.isArray(car.history_points)) {
+      return car.history_points[key] !== undefined ? car.history_points[key] : fallback;
+    }
+    return car[key] !== undefined ? car[key] : fallback;
+  };
+
+  const engine = getMetadata("engine", "1197 cc");
+  const maxPower = getMetadata("max_power", "88 bhp @ 6000 rpm");
+  const seatingCapacity = getMetadata("seating_capacity", "5 Seater");
+  const ownership = getMetadata("ownership", "First Owner");
+  const insurance = getMetadata("insurance", "Comprehensive");
+  const location = getMetadata("location", "Jhunsi, Prayagraj");
+  const description = getMetadata("description", car.description || "This certified vehicle is in excellent condition and has been fully vetted by our Maruti Suzuki True Value workshop.");
 
   return (
     <div className="max-w-container-max-width mx-auto w-full">
@@ -207,7 +222,7 @@ export default function VehicleDetails() {
               <span className="material-symbols-outlined text-primary text-3xl mb-2">speed</span>
               <span className="text-[10px] font-bold text-outline uppercase tracking-widest">Driven</span>
               <span className="font-bold text-lg text-text-main mt-1">
-                {car.mileage_km ? car.mileage_km.toLocaleString() : "0"} km
+                {car.kilometers_driven ? car.kilometers_driven.toLocaleString() : "0"} km
               </span>
             </div>
 
@@ -238,27 +253,27 @@ export default function VehicleDetails() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-2">
               <div className="flex justify-between items-center py-4 border-b border-outline-variant">
                 <span className="text-xs font-bold text-outline uppercase">Engine</span>
-                <span className="font-semibold text-text-main">{car.engine || "1197 cc"}</span>
+                <span className="font-semibold text-text-main">{engine}</span>
               </div>
               <div className="flex justify-between items-center py-4 border-b border-outline-variant">
                 <span className="text-xs font-bold text-outline uppercase">Max Power</span>
-                <span className="font-semibold text-text-main">{car.max_power || "88 bhp @ 6000 rpm"}</span>
+                <span className="font-semibold text-text-main">{maxPower}</span>
               </div>
               <div className="flex justify-between items-center py-4 border-b border-outline-variant">
                 <span className="text-xs font-bold text-outline uppercase">Seating Capacity</span>
-                <span className="font-semibold text-text-main">{car.seating_capacity || "5 Seater"}</span>
+                <span className="font-semibold text-text-main">{seatingCapacity}</span>
               </div>
               <div className="flex justify-between items-center py-4 border-b border-outline-variant">
                 <span className="text-xs font-bold text-outline uppercase">Ownership</span>
-                <span className="font-semibold text-text-main">{car.ownership || "First Owner"}</span>
+                <span className="font-semibold text-text-main">{ownership}</span>
               </div>
               <div className="flex justify-between items-center py-4 border-b border-outline-variant">
                 <span className="text-xs font-bold text-outline uppercase">Insurance</span>
-                <span className="font-semibold text-text-main">{car.insurance || "Comprehensive"}</span>
+                <span className="font-semibold text-text-main">{insurance}</span>
               </div>
               <div className="flex justify-between items-center py-4 border-b border-outline-variant">
                 <span className="text-xs font-bold text-outline uppercase">Location</span>
-                <span className="font-semibold text-text-main truncate max-w-[60%]">{car.location}</span>
+                <span className="font-semibold text-text-main truncate max-w-[60%]">{location}</span>
               </div>
             </div>
           </section>
@@ -269,7 +284,7 @@ export default function VehicleDetails() {
               Seller's Description
             </h2>
             <p className="text-on-surface-variant leading-relaxed text-body-md whitespace-pre-line">
-              {car.description || "This certified vehicle is in excellent condition and has been fully vetted by our Maruti Suzuki True Value workshop. Passed multi-point inspection checks."}
+              {description}
             </p>
           </section>
         </div>
@@ -279,7 +294,7 @@ export default function VehicleDetails() {
           <div className="bg-[#e2e7ff] p-8 rounded-xl border border-outline-variant sticky top-24 space-y-6 card-shadow">
             <div>
               <span className="inline-block px-3 py-1 bg-primary-container text-on-primary-container rounded-full text-label-md font-bold uppercase mb-2">
-                {car.status || car.badge || "AVAILABLE"}
+                {car.status || "Available"}
               </span>
               <h1 className="text-2xl font-extrabold text-text-main leading-tight">
                 {car.make} {car.model}
@@ -289,7 +304,7 @@ export default function VehicleDetails() {
 
             <div>
               <span className="text-xs font-bold text-outline uppercase block mb-1">True Value Price</span>
-              <span className="text-3xl font-black text-primary">₹{car.price_lakh} Lakh</span>
+              <span className="text-3xl font-black text-primary">₹{car.price || car.price_lakh} Lakh</span>
             </div>
 
             <div className="space-y-3 text-sm font-semibold text-on-surface-variant pt-2 border-t border-outline-variant">
@@ -299,7 +314,7 @@ export default function VehicleDetails() {
               </div>
               <div className="flex items-center gap-3">
                 <span className="material-symbols-outlined text-primary">location_on</span>
-                <span className="truncate">{car.location}</span>
+                <span className="truncate">{location}</span>
               </div>
             </div>
 

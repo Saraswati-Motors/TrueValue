@@ -25,7 +25,7 @@ const getMonthlySalesData = (salesLogsList, vehiclesList) => {
     });
   } else {
     vehiclesList.forEach(car => {
-      if (car.status?.toUpperCase() === "SOLD" || car.badge?.toUpperCase() === "SOLD") {
+      if (car.status?.toUpperCase() === "SOLD" || car.history_points?.badge?.toUpperCase() === "SOLD" || car.badge?.toUpperCase() === "SOLD") {
         const date = car.created_at ? new Date(car.created_at) : new Date();
         const year = date.getFullYear();
         const month = date.getMonth();
@@ -144,7 +144,7 @@ export default function SalesAnalytics() {
   // Compute stats
   const metrics = useMemo(() => {
     const total = vehicles.length;
-    const sold = vehicles.filter(v => v.status?.toUpperCase() === "SOLD" || v.badge?.toUpperCase() === "SOLD").length;
+    const sold = vehicles.filter(v => v.status?.toUpperCase() === "SOLD" || v.history_points?.badge?.toUpperCase() === "SOLD" || v.badge?.toUpperCase() === "SOLD").length;
     const available = total - sold;
 
     // Inventory Health = Available / Total
@@ -162,7 +162,7 @@ export default function SalesAnalytics() {
     vehicles.forEach(v => {
       const model = (v.model || "").toUpperCase();
       const make = (v.make || "").toUpperCase();
-      const price = v.price_lakh || 0;
+      const price = v.price || v.price_lakh || 0;
 
       if (price > 15 || model.includes("BMW") || model.includes("PORSCHE") || model.includes("AUDI") || model.includes("MERCEDES") || model.includes("GT") || model.includes("RS6")) {
         categories.Luxury++;

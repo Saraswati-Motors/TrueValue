@@ -56,6 +56,7 @@ export default function AddVehicle() {
   const [year, setYear] = useState(new Date().getFullYear());
   const [fuelType, setFuelType] = useState("Petrol");
   const [transmission, setTransmission] = useState("Manual");
+  const [category, setCategory] = useState("Sedan");
   const [location, setLocation] = useState("Jhunsi, Prayagraj");
   const [imageUrl, setImageUrl] = useState("");
   const [gallery, setGallery] = useState([]);
@@ -127,24 +128,26 @@ export default function AddVehicle() {
       make,
       model,
       variant,
-      price_lakh: parseFloat(priceLakh),
-      mileage_km: parseInt(mileageKm, 10),
+      price: parseFloat(priceLakh),
+      kilometers_driven: parseInt(mileageKm, 10),
       year: parseInt(year, 10),
       fuel_type: fuelType,
       transmission,
-      location,
-      image_url: imageUrl || "https://images.unsplash.com/photo-1542282088-fe8426682b8f", // default placeholder
-      gallery: gallery,
-      engine,
-      max_power: maxPower,
-      seating_capacity: seatingCapacity,
-      ownership,
-      insurance,
-      description,
-      status: "AVAILABLE",
-      badge: "NEW ARRIVAL",
-      is_certified: true,
-      is_featured: false,
+      category,
+      images: [imageUrl || "https://images.unsplash.com/photo-1542282088-fe8426682b8f", ...gallery],
+      history_points: {
+        location,
+        engine,
+        max_power: maxPower,
+        seating_capacity: seatingCapacity,
+        ownership,
+        insurance,
+        description,
+        badge: "NEW ARRIVAL",
+        is_certified: true,
+        is_featured: false
+      },
+      status: "Available",
       created_at: new Date().toISOString()
     };
 
@@ -153,7 +156,7 @@ export default function AddVehicle() {
       const localVehicles = localStorage.getItem("truevalue_mock_vehicles");
       const currentList = localVehicles ? JSON.parse(localVehicles) : mockCars;
       const newId = `${model.toLowerCase().replace(/\s+/g, "-")}-${Date.now().toString().slice(-4)}`;
-      const newVehicle = { ...vehicleData, id: newId };
+      const newVehicle = { ...vehicleData, vehicle_id: newId };
 
       localStorage.setItem("truevalue_mock_vehicles", JSON.stringify([newVehicle, ...currentList]));
 
@@ -190,15 +193,15 @@ export default function AddVehicle() {
 
       if (error) throw error;
 
-      // Log this in stock_logs (or custom logs table if it exists)
+      // Log this in sales_logs/stock logs
       const addedVehicle = data && data[0];
       if (addedVehicle) {
         await supabase
-          .from("sales_logs") // or other logs table if you want, but wait, let's keep it safe
+          .from("sales_logs")
           .insert([{
-            vehicle_id: addedVehicle.id,
-            price_lakh: parseFloat(priceLakh),
-            sale_date: new Date().toISOString() // this table tracks sales but let's see
+            vehicle_id: addedVehicle.vehicle_id,
+            sold_price: parseFloat(priceLakh),
+            sale_date: new Date().toISOString()
           }]).catch(err => console.log("Failed to insert log: ", err.message));
       }
 
@@ -211,7 +214,7 @@ export default function AddVehicle() {
       const localVehicles = localStorage.getItem("truevalue_mock_vehicles");
       const currentList = localVehicles ? JSON.parse(localVehicles) : mockCars;
       const newId = `tv-${Math.random().toString(36).substring(2, 7)}`;
-      localStorage.setItem("truevalue_mock_vehicles", JSON.stringify([{ ...vehicleData, id: newId }, ...currentList]));
+      localStorage.setItem("truevalue_mock_vehicles", JSON.stringify([{ ...vehicleData, vehicle_id: newId }, ...currentList]));
       navigate("/inventory");
     } finally {
       setSubmitting(false);
@@ -326,6 +329,7 @@ export default function AddVehicle() {
               <option>CNG</option>
               <option>Diesel</option>
               <option>Electric</option>
+              <option>LPG</option>
             </select>
           </div>
 
@@ -341,6 +345,23 @@ export default function AddVehicle() {
             </select>
           </div>
 
+          <div>
+            <label className="block font-label-lg mb-2 text-on-surface">Category *</label>
+            <select
+              className="w-full px-4 py-3 border border-outline-variant rounded-lg bg-surface-container-low min-h-[48px] outline-none focus:ring-1 focus:ring-primary"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+            >
+              <option>Sedan</option>
+              <option>SUV</option>
+              <option>Hatchback</option>
+              <option>MUV</option>
+              <option>Van</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div>
             <label className="block font-label-lg mb-2 text-on-surface">Dealership Location</label>
             <input
