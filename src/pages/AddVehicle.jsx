@@ -114,6 +114,13 @@ export default function AddVehicle() {
   const [ownership, setOwnership] = useState("First Owner");
   const [insurance, setInsurance] = useState("Comprehensive");
   const [description, setDescription] = useState("");
+  const [color, setColor] = useState("Solid Fire Red");
+  const [overallRating, setOverallRating] = useState(5);
+  const [exteriorRating, setExteriorRating] = useState(5);
+  const [interiorRating, setInteriorRating] = useState(5);
+  const [engineRating, setEngineRating] = useState(5);
+  const [functionsRating, setFunctionsRating] = useState(5);
+  const [frameRating, setFrameRating] = useState(5);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -135,6 +142,17 @@ export default function AddVehicle() {
       transmission,
       category,
       images: [imageUrl || "https://images.unsplash.com/photo-1542282088-fe8426682b8f", ...gallery],
+      details: {
+        color: color.trim()
+      },
+      ratings: {
+        overall: parseInt(overallRating, 10),
+        exterior: parseInt(exteriorRating, 10),
+        interior: parseInt(interiorRating, 10),
+        engine: parseInt(engineRating, 10),
+        functions: parseInt(functionsRating, 10),
+        frame: parseInt(frameRating, 10)
+      },
       history_points: {
         location,
         engine,
@@ -361,7 +379,7 @@ export default function AddVehicle() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="block font-label-lg mb-2 text-on-surface">Dealership Location</label>
             <input
@@ -370,6 +388,17 @@ export default function AddVehicle() {
               type="text"
               value={location}
               onChange={(e) => setLocation(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="block font-label-lg mb-2 text-on-surface">Car Color *</label>
+            <input
+              className="w-full px-4 py-3 border border-outline-variant rounded-lg bg-surface-container-low min-h-[48px] outline-none focus:ring-1 focus:ring-primary"
+              placeholder="e.g. Solid Fire Red"
+              type="text"
+              value={color}
+              onChange={(e) => setColor(e.target.value)}
+              required
             />
           </div>
         </div>
@@ -434,6 +463,77 @@ export default function AddVehicle() {
               value={insurance}
               onChange={(e) => setInsurance(e.target.value)}
             />
+          </div>
+        </div>
+
+        {/* Inspection Report Ratings */}
+        <h2 className="text-xl font-bold text-text-main border-l-4 border-primary pl-4 pt-4">376-Point Inspection Report Ratings (1-5 Stars)</h2>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div>
+            <label className="block font-label-lg mb-2 text-on-surface">Overall Rating *</label>
+            <select
+              className="w-full px-4 py-3 border border-outline-variant rounded-lg bg-surface-container-low min-h-[48px] outline-none focus:ring-1 focus:ring-primary"
+              value={overallRating}
+              onChange={(e) => setOverallRating(parseInt(e.target.value, 10))}
+            >
+              {[1, 2, 3, 4, 5].map(n => <option key={n} value={n}>{n}</option>)}
+            </select>
+          </div>
+
+          <div>
+            <label className="block font-label-lg mb-2 text-on-surface">Exterior *</label>
+            <select
+              className="w-full px-4 py-3 border border-outline-variant rounded-lg bg-surface-container-low min-h-[48px] outline-none focus:ring-1 focus:ring-primary"
+              value={exteriorRating}
+              onChange={(e) => setExteriorRating(parseInt(e.target.value, 10))}
+            >
+              {[1, 2, 3, 4, 5].map(n => <option key={n} value={n}>{n}</option>)}
+            </select>
+          </div>
+
+          <div>
+            <label className="block font-label-lg mb-2 text-on-surface">Interior + Elec *</label>
+            <select
+              className="w-full px-4 py-3 border border-outline-variant rounded-lg bg-surface-container-low min-h-[48px] outline-none focus:ring-1 focus:ring-primary"
+              value={interiorRating}
+              onChange={(e) => setInteriorRating(parseInt(e.target.value, 10))}
+            >
+              {[1, 2, 3, 4, 5].map(n => <option key={n} value={n}>{n}</option>)}
+            </select>
+          </div>
+
+          <div>
+            <label className="block font-label-lg mb-2 text-on-surface">Engine *</label>
+            <select
+              className="w-full px-4 py-3 border border-outline-variant rounded-lg bg-surface-container-low min-h-[48px] outline-none focus:ring-1 focus:ring-primary"
+              value={engineRating}
+              onChange={(e) => setEngineRating(parseInt(e.target.value, 10))}
+            >
+              {[1, 2, 3, 4, 5].map(n => <option key={n} value={n}>{n}</option>)}
+            </select>
+          </div>
+
+          <div>
+            <label className="block font-label-lg mb-2 text-on-surface">Functions *</label>
+            <select
+              className="w-full px-4 py-3 border border-outline-variant rounded-lg bg-surface-container-low min-h-[48px] outline-none focus:ring-1 focus:ring-primary"
+              value={functionsRating}
+              onChange={(e) => setFunctionsRating(parseInt(e.target.value, 10))}
+            >
+              {[1, 2, 3, 4, 5].map(n => <option key={n} value={n}>{n}</option>)}
+            </select>
+          </div>
+
+          <div>
+            <label className="block font-label-lg mb-2 text-on-surface">Frame/Structure *</label>
+            <select
+              className="w-full px-4 py-3 border border-outline-variant rounded-lg bg-surface-container-low min-h-[48px] outline-none focus:ring-1 focus:ring-primary"
+              value={frameRating}
+              onChange={(e) => setFrameRating(parseInt(e.target.value, 10))}
+            >
+              {[1, 2, 3, 4, 5].map(n => <option key={n} value={n}>{n}</option>)}
+            </select>
           </div>
         </div>
 
