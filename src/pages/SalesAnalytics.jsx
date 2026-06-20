@@ -155,25 +155,43 @@ export default function SalesAnalytics() {
       SUVs: 0,
       Sedans: 0,
       Hatchbacks: 0,
-      Luxury: 0,
-      Others: 0
+      MUVs: 0,
+      Vans: 0
     };
 
     vehicles.forEach(v => {
-      const model = (v.model || "").toUpperCase();
-      const make = (v.make || "").toUpperCase();
-      const price = v.price || v.price_lakh || 0;
+      let cat = (v.category || "").trim().toUpperCase();
 
-      if (price > 15 || model.includes("BMW") || model.includes("PORSCHE") || model.includes("AUDI") || model.includes("MERCEDES") || model.includes("GT") || model.includes("RS6")) {
-        categories.Luxury++;
-      } else if (model.includes("VITARA") || model.includes("BREZZA") || model.includes("XL6") || model.includes("NEXON") || model.includes("CAYENNE") || model.includes("Q8") || model.includes("SUV")) {
+      if (!cat) {
+        // Fallback: Infer category from model/make if not present (e.g. for mockCars)
+        const model = (v.model || "").toUpperCase();
+        if (model.includes("XL6") || model.includes("MUV")) {
+          cat = "MUV";
+        } else if (model.includes("VITARA") || model.includes("BREZZA") || model.includes("NEXON") || model.includes("CAYENNE") || model.includes("Q8") || model.includes("SUV")) {
+          cat = "SUV";
+        } else if (model.includes("CIAZ") || model.includes("CITY") || model.includes("SEDAN") || model.includes("DZIRE")) {
+          cat = "SEDAN";
+        } else if (model.includes("SWIFT") || model.includes("BALENO") || model.includes("ALTO") || model.includes("WAGON") || model.includes("HATCHBACK")) {
+          cat = "HATCHBACK";
+        } else if (model.includes("VAN") || model.includes("EECO")) {
+          cat = "VAN";
+        } else {
+          cat = "HATCHBACK"; // Default fallback
+        }
+      }
+
+      if (cat === "SUV" || cat === "SUVS") {
         categories.SUVs++;
-      } else if (model.includes("CIAZ") || model.includes("CITY") || model.includes("SEDAN") || model.includes("DZIRE")) {
+      } else if (cat === "SEDAN" || cat === "SEDANS") {
         categories.Sedans++;
-      } else if (model.includes("SWIFT") || model.includes("BALENO") || model.includes("ALTO") || model.includes("WAGON") || model.includes("HATCHBACK")) {
+      } else if (cat === "HATCHBACK" || cat === "HATCHBACKS") {
         categories.Hatchbacks++;
+      } else if (cat === "MUV" || cat === "MUVS") {
+        categories.MUVs++;
+      } else if (cat === "VAN" || cat === "VANS") {
+        categories.Vans++;
       } else {
-        categories.Others++;
+        categories.Hatchbacks++;
       }
     });
 
@@ -222,8 +240,8 @@ export default function SalesAnalytics() {
       ["SUVs", metrics.categories.SUVs],
       ["Sedans", metrics.categories.Sedans],
       ["Hatchbacks", metrics.categories.Hatchbacks],
-      ["Luxury", metrics.categories.Luxury],
-      ["Others", metrics.categories.Others],
+      ["MUVs", metrics.categories.MUVs],
+      ["Vans", metrics.categories.Vans],
       [],
       ["Stock Aging Profile", "Units"],
       ["0-30 Days", metrics.aging.thirtyDays],
@@ -438,27 +456,27 @@ export default function SalesAnalytics() {
                   </div>
                   <div className="w-12 text-right font-label-md text-on-surface-variant">{metrics.categories.Hatchbacks} u</div>
                 </div>
-                {/* Luxury */}
+                {/* MUVs */}
                 <div className="flex items-center gap-4">
-                  <div className="w-24 font-label-md text-text-main">Luxury</div>
+                  <div className="w-24 font-label-md text-text-main">MUVs</div>
                   <div className="flex-1 h-8 bg-surface-container rounded-lg overflow-hidden relative">
-                    <div className="h-full bg-surface-container-highest" style={{ width: `${metrics.total > 0 ? (metrics.categories.Luxury / metrics.total) * 100 : 0}%` }}></div>
+                    <div className="h-full bg-surface-container-highest" style={{ width: `${metrics.total > 0 ? (metrics.categories.MUVs / metrics.total) * 100 : 0}%` }}></div>
                     <span className="absolute inset-y-0 left-2 flex items-center text-[10px] font-bold text-on-surface-variant">
-                      {metrics.total > 0 ? Math.round((metrics.categories.Luxury / metrics.total) * 100) : 0}%
+                      {metrics.total > 0 ? Math.round((metrics.categories.MUVs / metrics.total) * 100) : 0}%
                     </span>
                   </div>
-                  <div className="w-12 text-right font-label-md text-on-surface-variant">{metrics.categories.Luxury} u</div>
+                  <div className="w-12 text-right font-label-md text-on-surface-variant">{metrics.categories.MUVs} u</div>
                 </div>
-                {/* Others */}
+                {/* Vans */}
                 <div className="flex items-center gap-4">
-                  <div className="w-24 font-label-md text-text-main">Others</div>
+                  <div className="w-24 font-label-md text-text-main">Vans</div>
                   <div className="flex-1 h-8 bg-surface-container rounded-lg overflow-hidden relative">
-                    <div className="h-full bg-outline-variant" style={{ width: `${metrics.total > 0 ? (metrics.categories.Others / metrics.total) * 100 : 0}%` }}></div>
+                    <div className="h-full bg-outline-variant" style={{ width: `${metrics.total > 0 ? (metrics.categories.Vans / metrics.total) * 100 : 0}%` }}></div>
                     <span className="absolute inset-y-0 left-2 flex items-center text-[10px] font-bold text-on-surface-variant">
-                      {metrics.total > 0 ? Math.round((metrics.categories.Others / metrics.total) * 100) : 0}%
+                      {metrics.total > 0 ? Math.round((metrics.categories.Vans / metrics.total) * 100) : 0}%
                     </span>
                   </div>
-                  <div className="w-12 text-right font-label-md text-on-surface-variant">{metrics.categories.Others} u</div>
+                  <div className="w-12 text-right font-label-md text-on-surface-variant">{metrics.categories.Vans} u</div>
                 </div>
               </div>
             </div>

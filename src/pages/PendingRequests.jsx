@@ -327,10 +327,9 @@ export default function PendingRequests() {
             </div>
             {/* Visual Progress Bar */}
             <div className="w-full bg-gray-100 rounded-full h-2 mt-2 overflow-hidden">
-              <div 
-                className={`h-full transition-all duration-500 ${
-                  stats.total >= 490 ? "bg-red-600" : stats.total >= 450 ? "bg-yellow-500" : "bg-primary"
-                }`}
+              <div
+                className={`h-full transition-all duration-500 ${stats.total >= 490 ? "bg-red-600" : stats.total >= 450 ? "bg-yellow-500" : "bg-primary"
+                  }`}
                 style={{ width: `${Math.min((stats.total / 500) * 100, 100)}%` }}
               ></div>
             </div>
@@ -484,15 +483,14 @@ export default function PendingRequests() {
 
                   {/* Status Column */}
                   <div className="col-span-1 md:col-span-1 text-center">
-                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
-                      status === "Booked"
+                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${status === "Booked"
                         ? "bg-green-100 text-green-800"
                         : status === "Lost"
                           ? "bg-rose-100 text-rose-800"
                           : status === "In Progress"
                             ? "bg-yellow-100 text-yellow-800"
                             : "bg-blue-100 text-blue-800"
-                    }`}>
+                      }`}>
                       {status}
                     </span>
                     {isUrgent && (
