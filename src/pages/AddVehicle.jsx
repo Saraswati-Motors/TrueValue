@@ -335,6 +335,7 @@ export default function AddVehicle() {
             >
               <option>Manual</option>
               <option>Automatic</option>
+              <option>Hybrid</option>
             </select>
           </div>
 
