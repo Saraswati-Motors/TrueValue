@@ -40,8 +40,13 @@ export default function Inventory() {
       }
 
       if (data && data.length > 0) {
-        setVehicles(data);
-        calculateStats(data);
+        const normalized = data.map(v => ({
+          ...v,
+          vehicle_id: v.id || v.vehicle_id,
+          kilometers_driven: v.mileage_km !== undefined ? v.mileage_km : v.kilometers_driven
+        }));
+        setVehicles(normalized);
+        calculateStats(normalized);
       } else {
         // DB is empty, use mock
         setVehicles(mockCars);
@@ -110,7 +115,7 @@ export default function Inventory() {
       const { error } = await supabase
         .from("vehicles")
         .update({ status: "Sold" })
-        .eq("vehicle_id", id);
+        .eq("id", id);
 
       if (error) {
         throw error;

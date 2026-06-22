@@ -31,14 +31,19 @@ export default function VehicleDetails() {
         const { data, error } = await supabase
           .from("vehicles")
           .select("*")
-          .eq("vehicle_id", id)
+          .eq("id", id)
           .maybeSingle();
 
         if (error) throw error;
 
         if (data) {
-          setCar(data);
-          setActiveImage(data.images?.[0] || data.image_url);
+          const normalized = {
+            ...data,
+            vehicle_id: data.id || data.vehicle_id,
+            kilometers_driven: data.mileage_km !== undefined ? data.mileage_km : data.kilometers_driven
+          };
+          setCar(normalized);
+          setActiveImage(normalized.images?.[0] || normalized.image_url);
         } else {
           // Check local storage mock if database doesn't have it
           const localVehicles = localStorage.getItem("truevalue_mock_vehicles");
@@ -106,7 +111,7 @@ export default function VehicleDetails() {
       const { error } = await supabase
         .from("vehicles")
         .update({ status: "Sold" })
-        .eq("vehicle_id", car.vehicle_id);
+        .eq("id", car.id || car.vehicle_id);
 
       if (error) throw error;
 
@@ -114,7 +119,7 @@ export default function VehicleDetails() {
       await supabase
         .from("sales_logs")
         .insert([{
-          vehicle_id: car.vehicle_id,
+          vehicle_id: car.id || car.vehicle_id,
           sold_price: car.price,
           sale_date: new Date().toISOString()
         }]);

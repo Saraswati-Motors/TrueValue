@@ -135,7 +135,7 @@ export default function AddVehicle() {
       model,
       variant,
       price: parseFloat(priceLakh),
-      kilometers_driven: parseInt(mileageKm, 10),
+      mileage_km: parseInt(mileageKm, 10),
       year: parseInt(year, 10),
       fuel_type: fuelType,
       transmission,
@@ -215,7 +215,7 @@ export default function AddVehicle() {
         await supabase
           .from("sales_logs")
           .insert([{
-            vehicle_id: addedVehicle.vehicle_id,
+            vehicle_id: addedVehicle.id,
             sold_price: parseFloat(priceLakh),
             sale_date: new Date().toISOString()
           }]).catch(err => console.log("Failed to insert log: ", err.message));
