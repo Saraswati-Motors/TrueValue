@@ -1,5 +1,6 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import ScrollToTop from "./components/ScrollToTop";
 import ProtectedRoute from "./components/ProtectedRoute";
 import NavigationLayout from "./components/NavigationLayout";
 import Login from "./pages/Login";
@@ -15,6 +16,7 @@ import UserManagement from "./pages/UserManagement";
 function App() {
   return (
     <Router>
+      <ScrollToTop />
       <Routes>
         <Route path="/login" element={<Login />} />
 

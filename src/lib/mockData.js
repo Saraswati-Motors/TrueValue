@@ -14,7 +14,6 @@ export const mockCars = [
     is_featured: true,
     badge: "Featured",
     engine: "1462 cc, K15B",
-    max_power: "103 bhp @ 6000 rpm",
     seating_capacity: "6 Seater (Captain Seats)",
     ownership: "First Owner",
     insurance: "Comprehensive (Valid Oct 2025)",
@@ -27,9 +26,7 @@ export const mockCars = [
       "https://lh3.googleusercontent.com/aida-public/AB6AXuBOKHW627YRZ2z_sSm3nCy84YI8UHOJY08SG1eLBcez2f8OemKIDp6uG_-L6R8I5qvjPABu_gdTHP2AsShOxu8f_Odnww_VtScK1MMzhfzaFlw8eNfqZmYdVCSs89oUuHzekqPwmuf6N6JaEnKuICKfPvtoi7afckH3HbXrlctLAjsqkB-oMRN2tvg_nGtWlkpxk7gudgwgMRRiX6BAyLSUOFXJVh5eUrMoGWMkn4xvTk5AxV8-c34prGt9Nc6E-58KMxPZqX-m2FhS"
     ],
     details: {
-      mileage: "19.01 kmpl",
-      engine_capacity: "1462 cc",
-      max_power: "103 bhp @ 6000 rpm"
+      engine_capacity: "1462 cc"
     }
   },
   {
@@ -47,7 +44,6 @@ export const mockCars = [
     is_featured: true,
     badge: "Featured",
     engine: "1197 cc, DualJet",
-    max_power: "89 bhp @ 6000 rpm",
     seating_capacity: "5 Seater",
     ownership: "First Owner",
     insurance: "Comprehensive (Valid Oct 2025)",
@@ -57,9 +53,7 @@ export const mockCars = [
       "https://lh3.googleusercontent.com/aida-public/AB6AXuAuMYZGll9TAUgo3uh5WTyuuk5iDzX2SpaYr0sLVD4ZQt1LknY_hkZGU7s408zpoO9gtoEotvkK_8-k7ur1E0b_tgQDTkrZY98fWrwiAfpSUr7welCsUCRGMuTL-I4QfXW9JVyfkxH1YWbq3VEZ2_KL2He9lYUmnPo6cofKng5I70ja_kgRvEwAh8cn-sX8Fot1_WH2XNxtr4Z6gKYhcGoKLPBx1DElt889OirE2UUL2KiYlnSAFs7bn_ZWf360CkBbbUWuKpVEPgwB"
     ],
     details: {
-      mileage: "22.3 kmpl",
-      engine_capacity: "1197 cc",
-      max_power: "89 bhp @ 6000 rpm"
+      engine_capacity: "1197 cc"
     }
   },
   {
@@ -77,7 +71,6 @@ export const mockCars = [
     is_featured: false,
     badge: "Premium",
     engine: "1197 cc, K-Series",
-    max_power: "88 bhp @ 6000 rpm",
     seating_capacity: "5 Seater",
     ownership: "First Owner",
     insurance: "Third Party (Valid Aug 2025)",
@@ -87,9 +80,7 @@ export const mockCars = [
       "https://lh3.googleusercontent.com/aida-public/AB6AXuDw93X-LkMwsrvg-HAnDfcsAMMmvBMBec8p7UUoKfXWQmuM6tvkuw2VioRxAKJa7P6Jn3s6ktwsM6_EBeePSYacTB7AUb_vW3Hba5KoexLismGLtb0J3AvXQ0-q6GSJqd4dbLfP4eNW8XCyeoh4Twyolf9BATR3Bn8SBQATyfUoVfMZ-UDZAO_Ym0V53RVkyvOZjELsm2ewN7Oi7WVsYBv-mREcNfF6va0XVQY2szmJ_4QaQKmyLK3OfdqS7_IKZz1ZMxku-HuHxEf4"
     ],
     details: {
-      mileage: "20.8 kmpl",
-      engine_capacity: "1197 cc",
-      max_power: "88 bhp @ 6000 rpm"
+      engine_capacity: "1197 cc"
     }
   },
   {
@@ -107,7 +98,6 @@ export const mockCars = [
     is_featured: false,
     badge: "Premium",
     engine: "1498 cc, DDiS 225",
-    max_power: "94 bhp @ 4000 rpm",
     seating_capacity: "5 Seater",
     ownership: "First Owner",
     insurance: "Comprehensive (Valid Dec 2025)",
@@ -115,9 +105,7 @@ export const mockCars = [
     image_url: "https://lh3.googleusercontent.com/aida-public/AB6AXuBddA8oPIJszQLm2z0omaYf2DQsOBK23SWk2uR8qF3cMF0vCt_cLjmUADyzm9FB6I1U7mjePsQni80y07WBZ64-YLDgBk0WhdsUj_3l2Py7C7jV1jTsa0h7uNYxqakfc6okTUvbgUfBmEnE6Iu1igi3vk13bKV2gti3pJR_yt1tGJprT7yjVSWAUzC0eahjhV_17-jaMUTyvEO-WuXp76UCWfyWym1uT4WgGdkOGq0AqLnYQkESDqzCp8VRAS_sJh9qsRpNN-fiYxHw",
     gallery: [],
     details: {
-      mileage: "21.2 kmpl",
-      engine_capacity: "1498 cc",
-      max_power: "94 bhp @ 4000 rpm"
+      engine_capacity: "1498 cc"
     }
   },
   {
@@ -135,7 +123,6 @@ export const mockCars = [
     is_featured: true,
     badge: "New Arrival",
     engine: "1490 cc, M15A",
-    max_power: "91 bhp @ 5500 rpm",
     seating_capacity: "5 Seater",
     ownership: "First Owner",
     insurance: "Comprehensive (Valid Jan 2026)",
@@ -145,9 +132,7 @@ export const mockCars = [
       "https://lh3.googleusercontent.com/aida-public/AB6AXuBeztXZYwHSjAYAuwMTG9zj2g7VXgCy6uqV6RzwXuZmEO9SxyxRvKcyEXX8ylESfe8QahLI1dmJrAi2f_upYfWTwsf3fSCQqRj4nFnVvNQen3WnFg7P5j-5MsUlXZwQMP4IgquMialGqv_Q5qksfTRD2mbDJLzToGbDfvFnCQqN0atzyAKhgRpANM_iYfX_XAAHiLq_eNdngufwIidQI3flsc4jvsi6qsaYPDqNwv3BWicfQacKWAXrw1bPhqxGeG4PIpjo6PZGhNXG"
     ],
     details: {
-      mileage: "27.9 km/l",
-      engine_capacity: "1490 cc",
-      max_power: "91 bhp @ 5500 rpm"
+      engine_capacity: "1490 cc"
     }
   }
 ];

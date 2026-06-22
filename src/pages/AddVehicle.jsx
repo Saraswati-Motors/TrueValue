@@ -109,7 +109,6 @@ export default function AddVehicle() {
     }
   };
   const [engine, setEngine] = useState("1197 cc");
-  const [maxPower, setMaxPower] = useState("88 bhp @ 6000 rpm");
   const [seatingCapacity, setSeatingCapacity] = useState("5 Seater");
   const [ownership, setOwnership] = useState("First Owner");
   const [insurance, setInsurance] = useState("Comprehensive");
@@ -156,7 +155,6 @@ export default function AddVehicle() {
       history_points: {
         location,
         engine,
-        max_power: maxPower,
         seating_capacity: seatingCapacity,
         ownership,
         insurance,
@@ -405,7 +403,7 @@ export default function AddVehicle() {
 
         <h2 className="text-xl font-bold text-text-main border-l-4 border-primary pl-4 pt-4">Technical Details &amp; Options</h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="block font-label-lg mb-2 text-on-surface">Engine Displacement</label>
             <input
@@ -414,17 +412,6 @@ export default function AddVehicle() {
               type="text"
               value={engine}
               onChange={(e) => setEngine(e.target.value)}
-            />
-          </div>
-
-          <div>
-            <label className="block font-label-lg mb-2 text-on-surface">Max Power Output</label>
-            <input
-              className="w-full px-4 py-3 border border-outline-variant rounded-lg bg-surface-container-low min-h-[48px] outline-none focus:ring-1 focus:ring-primary"
-              placeholder="e.g. 88 bhp @ 6000 rpm"
-              type="text"
-              value={maxPower}
-              onChange={(e) => setMaxPower(e.target.value)}
             />
           </div>
 

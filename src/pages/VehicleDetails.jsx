@@ -162,7 +162,6 @@ export default function VehicleDetails() {
   };
 
   const engine = getMetadata("engine", "1197 cc");
-  const maxPower = getMetadata("max_power", "88 bhp @ 6000 rpm");
   const seatingCapacity = getMetadata("seating_capacity", "5 Seater");
   const ownership = getMetadata("ownership", "First Owner");
   const insurance = getMetadata("insurance", "Comprehensive");
@@ -254,10 +253,6 @@ export default function VehicleDetails() {
               <div className="flex justify-between items-center py-4 border-b border-outline-variant">
                 <span className="text-xs font-bold text-outline uppercase">Engine</span>
                 <span className="font-semibold text-text-main">{engine}</span>
-              </div>
-              <div className="flex justify-between items-center py-4 border-b border-outline-variant">
-                <span className="text-xs font-bold text-outline uppercase">Max Power</span>
-                <span className="font-semibold text-text-main">{maxPower}</span>
               </div>
               <div className="flex justify-between items-center py-4 border-b border-outline-variant">
                 <span className="text-xs font-bold text-outline uppercase">Seating Capacity</span>
