@@ -180,22 +180,35 @@ export default function AddVehicle() {
 
       if (error) throw error;
 
-      // Log this in sales_logs/stock logs
       const addedVehicle = data && data[0];
       if (addedVehicle) {
-        await supabase
-          .from("sales_logs")
-          .insert([{
-            vehicle_id: addedVehicle.id,
-            sold_price: parseFloat(priceLakh),
-            sale_date: new Date().toISOString()
-          }]).catch(err => console.log("Failed to insert log: ", err.message));
+        try {
+          const { error: logError } = await supabase
+            .from("sales_logs")
+            .insert([{
+              vehicle_id: addedVehicle.id,
+              sold_price: parseFloat(priceLakh),
+              sale_date: new Date().toISOString()
+            }]);
+          if (logError) {
+            console.warn("Failed to insert sales log:", logError.message);
+          }
+        } catch (logErr) {
+          console.warn("Error inserting sales log:", logErr.message);
+        }
       }
 
       navigate("/inventory");
     } catch (err) {
-      console.error("Failed to add vehicle to Supabase:", err.message);
-      alert("Error adding vehicle to database.");
+      console.error("Failed to add vehicle to Supabase:", err);
+      const isNetworkError = (err.message || "").toLowerCase().includes("load failed") || 
+                             (err.message || "").toLowerCase().includes("fetch") ||
+                             !navigator.onLine;
+      if (isNetworkError) {
+        alert("Network connection error or request timed out. If this persists, please ensure you have applied the Supabase RLS policy fix to stop the infinite recursion loop in your database.");
+      } else {
+        alert(`Error adding vehicle to database: ${err.message || err}`);
+      }
     } finally {
       setSubmitting(false);
     }
