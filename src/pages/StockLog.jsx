@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
-import { mockCars } from "../lib/mockData";
 
 export default function StockLog() {
   const navigate = useNavigate();
@@ -14,10 +13,7 @@ export default function StockLog() {
     async function fetchStockHistory() {
       setLoading(true);
       if (!supabase) {
-        // Mock fallback load from local storage if available
-        const localVehicles = localStorage.getItem("truevalue_mock_vehicles");
-        const list = localVehicles ? JSON.parse(localVehicles) : mockCars;
-        setVehicles(list);
+        setVehicles([]);
         setLoading(false);
         return;
       }
@@ -33,13 +29,11 @@ export default function StockLog() {
         if (data && data.length > 0) {
           setVehicles(data);
         } else {
-          setVehicles(mockCars);
+          setVehicles([]);
         }
       } catch (err) {
         console.error("Error fetching stock history:", err.message);
-        const localVehicles = localStorage.getItem("truevalue_mock_vehicles");
-        const list = localVehicles ? JSON.parse(localVehicles) : mockCars;
-        setVehicles(list);
+        setVehicles([]);
       } finally {
         setLoading(false);
       }

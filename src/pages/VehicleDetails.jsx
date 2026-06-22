@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
-import { mockCars } from "../lib/mockData";
 
 export default function VehicleDetails() {
   const { id } = useParams();
@@ -15,14 +14,7 @@ export default function VehicleDetails() {
     async function loadVehicleDetails() {
       setLoading(true);
       if (!supabase) {
-        // Mock fallback load
-        const localVehicles = localStorage.getItem("truevalue_mock_vehicles");
-        const carsList = localVehicles ? JSON.parse(localVehicles) : mockCars;
-        const found = carsList.find(c => String(c.vehicle_id || c.id) === String(id));
-        setCar(found || null);
-        if (found) {
-          setActiveImage(found.images?.[0] || found.image_url);
-        }
+        setCar(null);
         setLoading(false);
         return;
       }
@@ -45,24 +37,11 @@ export default function VehicleDetails() {
           setCar(normalized);
           setActiveImage(normalized.images?.[0] || normalized.image_url);
         } else {
-          // Check local storage mock if database doesn't have it
-          const localVehicles = localStorage.getItem("truevalue_mock_vehicles");
-          const carsList = localVehicles ? JSON.parse(localVehicles) : mockCars;
-          const found = carsList.find(c => String(c.vehicle_id || c.id) === String(id));
-          setCar(found || null);
-          if (found) {
-            setActiveImage(found.images?.[0] || found.image_url);
-          }
+          setCar(null);
         }
       } catch (err) {
-        console.error("Error loading vehicle details, falling back to mock:", err);
-        const localVehicles = localStorage.getItem("truevalue_mock_vehicles");
-        const carsList = localVehicles ? JSON.parse(localVehicles) : mockCars;
-        const found = carsList.find(c => String(c.vehicle_id || c.id) === String(id));
-        setCar(found || null);
-        if (found) {
-          setActiveImage(found.images?.[0] || found.image_url);
-        }
+        console.error("Error loading vehicle details:", err);
+        setCar(null);
       } finally {
         setLoading(false);
       }
@@ -78,31 +57,6 @@ export default function VehicleDetails() {
     setSubmitting(true);
 
     if (!supabase) {
-      // Local Mock Update
-      const localVehicles = localStorage.getItem("truevalue_mock_vehicles");
-      if (localVehicles) {
-        const parsed = JSON.parse(localVehicles);
-        const updated = parsed.map(v => {
-          if (String(v.vehicle_id || v.id) === String(car.vehicle_id || car.id)) {
-            return { ...v, status: "Sold" };
-          }
-          return v;
-        });
-        localStorage.setItem("truevalue_mock_vehicles", JSON.stringify(updated));
-        
-        // Also log to local sales_logs
-        let localLogs = localStorage.getItem("truevalue_mock_sales_logs");
-        const logItem = {
-          sale_id: Math.random().toString(36).substring(2, 9),
-          vehicle_id: car.vehicle_id || car.id,
-          sale_date: new Date().toISOString(),
-          sold_price: car.price || car.price_lakh || 0
-        };
-        const currentLogs = localLogs ? JSON.parse(localLogs) : [];
-        localStorage.setItem("truevalue_mock_sales_logs", JSON.stringify([logItem, ...currentLogs]));
-
-        setCar({ ...car, status: "Sold" });
-      }
       setSubmitting(false);
       return;
     }
@@ -127,8 +81,7 @@ export default function VehicleDetails() {
       setCar({ ...car, status: "Sold" });
     } catch (err) {
       console.error("Failed to mark sold:", err.message);
-      alert("Error updating database. Updating locally.");
-      setCar({ ...car, status: "Sold" });
+      alert("Error updating database.");
     } finally {
       setSubmitting(false);
     }

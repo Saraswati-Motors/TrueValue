@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
-import { mockCars } from "../lib/mockData";
 
 const compressImage = (file) => {
   return new Promise((resolve, reject) => {
@@ -168,35 +167,7 @@ export default function AddVehicle() {
     };
 
     if (!supabase) {
-      // Local Mock Database Save
-      const localVehicles = localStorage.getItem("truevalue_mock_vehicles");
-      const currentList = localVehicles ? JSON.parse(localVehicles) : mockCars;
-      const newId = `${model.toLowerCase().replace(/\s+/g, "-")}-${Date.now().toString().slice(-4)}`;
-      const newVehicle = { ...vehicleData, vehicle_id: newId };
-
-      localStorage.setItem("truevalue_mock_vehicles", JSON.stringify([newVehicle, ...currentList]));
-
-      // Also log this in stock logs
-      let localLogs = localStorage.getItem("truevalue_mock_stock_logs");
-      const logItem = {
-        id: Math.random().toString(36).substring(2, 9),
-        vehicle_id: newId,
-        make,
-        model,
-        year,
-        mileage_km: mileageKm,
-        price_lakh: priceLakh,
-        action: "ADD",
-        status: "IN STOCK",
-        created_at: new Date().toISOString()
-      };
-      const currentLogs = localLogs ? JSON.parse(localLogs) : [];
-      localStorage.setItem("truevalue_mock_stock_logs", JSON.stringify([logItem, ...currentLogs]));
-
-      setTimeout(() => {
-        setSubmitting(false);
-        navigate("/inventory");
-      }, 1000);
+      setSubmitting(false);
       return;
     }
 
@@ -224,14 +195,7 @@ export default function AddVehicle() {
       navigate("/inventory");
     } catch (err) {
       console.error("Failed to add vehicle to Supabase:", err.message);
-      alert("Error adding vehicle to database. Falling back to saving in local session storage.");
-
-      // Save locally
-      const localVehicles = localStorage.getItem("truevalue_mock_vehicles");
-      const currentList = localVehicles ? JSON.parse(localVehicles) : mockCars;
-      const newId = `tv-${Math.random().toString(36).substring(2, 7)}`;
-      localStorage.setItem("truevalue_mock_vehicles", JSON.stringify([{ ...vehicleData, vehicle_id: newId }, ...currentList]));
-      navigate("/inventory");
+      alert("Error adding vehicle to database.");
     } finally {
       setSubmitting(false);
     }

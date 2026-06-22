@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
-import { mockCars } from "../lib/mockData";
 
 export default function Inventory() {
   const navigate = useNavigate();
@@ -17,15 +16,8 @@ export default function Inventory() {
   const loadVehicles = async () => {
     setLoading(true);
     if (!supabase) {
-      // Local Storage mock database synchronizer
-      let localVehicles = localStorage.getItem("truevalue_mock_vehicles");
-      if (!localVehicles) {
-        localStorage.setItem("truevalue_mock_vehicles", JSON.stringify(mockCars));
-        localVehicles = JSON.stringify(mockCars);
-      }
-      const parsed = JSON.parse(localVehicles);
-      setVehicles(parsed);
-      calculateStats(parsed);
+      setVehicles([]);
+      calculateStats([]);
       setLoading(false);
       return;
     }
@@ -48,20 +40,13 @@ export default function Inventory() {
         setVehicles(normalized);
         calculateStats(normalized);
       } else {
-        // DB is empty, use mock
-        setVehicles(mockCars);
-        calculateStats(mockCars);
+        setVehicles([]);
+        calculateStats([]);
       }
     } catch (err) {
-      console.error("Failed to load vehicles from Supabase, using mock fallback:", err);
-      let localVehicles = localStorage.getItem("truevalue_mock_vehicles");
-      if (!localVehicles) {
-        localStorage.setItem("truevalue_mock_vehicles", JSON.stringify(mockCars));
-        localVehicles = JSON.stringify(mockCars);
-      }
-      const parsed = JSON.parse(localVehicles);
-      setVehicles(parsed);
-      calculateStats(parsed);
+      console.error("Failed to load vehicles from Supabase:", err);
+      setVehicles([]);
+      calculateStats([]);
     } finally {
       setLoading(false);
     }
@@ -83,31 +68,6 @@ export default function Inventory() {
     e.stopPropagation(); // Stop navigation click
     
     if (!supabase) {
-      // Local Mock Update
-      const localVehicles = localStorage.getItem("truevalue_mock_vehicles");
-      if (localVehicles) {
-        const parsed = JSON.parse(localVehicles);
-        const updated = parsed.map(v => {
-          if (v.vehicle_id === id) {
-            return { ...v, status: "Sold" };
-          }
-          return v;
-        });
-        localStorage.setItem("truevalue_mock_vehicles", JSON.stringify(updated));
-        setVehicles(updated);
-        calculateStats(updated);
-        
-        // Also log to local sales_logs
-        let localLogs = localStorage.getItem("truevalue_mock_sales_logs");
-        const logItem = {
-          sale_id: Math.random().toString(36).substring(2, 9),
-          vehicle_id: id,
-          sale_date: new Date().toISOString(),
-          sold_price: parsed.find(v => v.vehicle_id === id)?.price || 0
-        };
-        const currentLogs = localLogs ? JSON.parse(localLogs) : [];
-        localStorage.setItem("truevalue_mock_sales_logs", JSON.stringify([logItem, ...currentLogs]));
-      }
       return;
     }
 
@@ -137,16 +97,7 @@ export default function Inventory() {
       await loadVehicles();
     } catch (err) {
       console.error("Failed to mark vehicle as sold:", err.message);
-      alert("Error updating database. Falling back to local state update.");
-      // Fallback update
-      const updated = vehicles.map(v => {
-        if (v.vehicle_id === id) {
-          return { ...v, status: "Sold" };
-        }
-        return v;
-      });
-      setVehicles(updated);
-      calculateStats(updated);
+      alert("Error updating database.");
     }
   };
 

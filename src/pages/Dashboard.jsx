@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
-import { mockCars } from "../lib/mockData";
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -118,37 +117,12 @@ export default function Dashboard() {
     async function loadDashboardData() {
       setLoading(true);
       if (!supabase) {
-        // Mock fallback load
-        setTotalVehicles(mockCars.filter(c => c.badge !== "Sold").length);
-        setMonthlySales(mockCars.filter(c => c.badge === "Sold").length + 4);
-        setRecentArrivals(mockCars.slice(0, 3));
-        
-        const localInquiries = localStorage.getItem("truevalue_mock_inquiries");
-        let parsedInquiries = localInquiries ? JSON.parse(localInquiries) : [];
-        if (parsedInquiries.length < 10) {
-          const mockInquiriesList = [];
-          for (let i = 1; i <= 495; i++) {
-            mockInquiriesList.push({
-              inquiry_id: String(i),
-              customer_name: i === 1 ? "Arjun Mehta" : i === 2 ? "Priya Sharma" : i === 3 ? "Rajesh Kumar" : `Customer ${i}`,
-              vehicle_name: i % 3 === 0 ? "2021 Maruti Suzuki Swift" : i % 2 === 0 ? "2023 Maruti Suzuki Vitara" : "2022 Maruti Suzuki Ciaz",
-              phone_number: `+91 98765 ${String(10000 + i).slice(1)}`,
-              email: `customer${i}@example.com`,
-              created_at: new Date(Date.now() - 3600000 * (i % 72)).toISOString(),
-              status: i % 15 === 0 ? "Booked" : i % 25 === 0 ? "Lost" : i % 5 === 0 ? "Contacted" : "New",
-              lost_reason: i % 25 === 0 ? "Price too high" : undefined,
-              location: i % 3 === 0 ? "Phaphamau, Prayagraj" : i % 2 === 0 ? "Civil Lines, Prayagraj" : "Jhunsi, Prayagraj"
-            });
-          }
-          localStorage.setItem("truevalue_mock_inquiries", JSON.stringify(mockInquiriesList));
-          parsedInquiries = mockInquiriesList;
-        }
-        setInquiries(parsedInquiries);
-        const pending = parsedInquiries.filter(i => !i.status || i.status?.toLowerCase() === "contacted" || i.status?.toLowerCase() === "in progress" || i.status?.toLowerCase() === "new").length;
-        setPendingInquiries(pending);
-
-        const localLogs = localStorage.getItem("truevalue_mock_sales_logs");
-        setSalesLogs(localLogs ? JSON.parse(localLogs) : []);
+        setTotalVehicles(0);
+        setMonthlySales(0);
+        setRecentArrivals([]);
+        setInquiries([]);
+        setPendingInquiries(0);
+        setSalesLogs([]);
         setLoading(false);
         return;
       }
@@ -168,12 +142,6 @@ export default function Dashboard() {
           soldCount = vehiclesData.filter(v => v.status?.toUpperCase() === "SOLD" || v.history_points?.badge?.toUpperCase() === "SOLD").length;
           const sorted = [...vehiclesData].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
           arrivals = sorted.slice(0, 3);
-        } else {
-          const localVehicles = localStorage.getItem("truevalue_mock_vehicles");
-          activeVehicles = localVehicles ? JSON.parse(localVehicles) : mockCars;
-          soldCount = activeVehicles.filter(v => v.status?.toUpperCase() === "SOLD" || v.history_points?.badge?.toUpperCase() === "SOLD" || v.badge?.toUpperCase() === "SOLD").length;
-          const sorted = [...activeVehicles].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-          arrivals = sorted.slice(0, 3);
         }
 
         setTotalVehicles(activeVehicles.filter(v => v.status?.toUpperCase() !== "SOLD" && v.history_points?.badge?.toUpperCase() !== "SOLD").length);
@@ -181,12 +149,9 @@ export default function Dashboard() {
         setRecentArrivals(arrivals);
       } catch (err) {
         console.error("Error loading vehicles:", err);
-        const localVehicles = localStorage.getItem("truevalue_mock_vehicles");
-        const activeVehicles = localVehicles ? JSON.parse(localVehicles) : mockCars;
-        setTotalVehicles(activeVehicles.filter(v => v.status?.toUpperCase() !== "SOLD" && v.badge?.toUpperCase() !== "SOLD").length);
-        setMonthlySales(activeVehicles.filter(v => v.status?.toUpperCase() === "SOLD" || v.badge?.toUpperCase() === "SOLD").length);
-        const sorted = [...activeVehicles].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-        setRecentArrivals(sorted.slice(0, 3));
+        setTotalVehicles(0);
+        setMonthlySales(0);
+        setRecentArrivals([]);
       }
 
       try {
@@ -218,13 +183,11 @@ export default function Dashboard() {
         if (!sError && salesLogsData && salesLogsData.length > 0) {
           setSalesLogs(salesLogsData);
         } else {
-          const localLogs = localStorage.getItem("truevalue_mock_sales_logs");
-          setSalesLogs(localLogs ? JSON.parse(localLogs) : []);
+          setSalesLogs([]);
         }
       } catch (err) {
         console.error("Error loading sales logs:", err);
-        const localLogs = localStorage.getItem("truevalue_mock_sales_logs");
-        setSalesLogs(localLogs ? JSON.parse(localLogs) : []);
+        setSalesLogs([]);
       } finally {
         setLoading(false);
       }
@@ -284,16 +247,6 @@ export default function Dashboard() {
           }
         }
       });
-    }
-
-    const hasRealData = walkins.some(v => v > 0) || conversions.some(v => v > 0);
-    if (!hasRealData) {
-      return {
-        labels: days,
-        walkins: [5, 8, 4, 12, 9, 15, 6],
-        conversions: [2, 3, 1, 5, 3, 6, 2],
-        maxVal: 16
-      };
     }
 
     const maxVal = Math.max(...walkins, ...conversions, 4);

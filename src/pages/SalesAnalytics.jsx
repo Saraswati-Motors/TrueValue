@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { supabase } from "../lib/supabaseClient";
-import { mockCars } from "../lib/mockData";
 
 const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -39,25 +38,8 @@ const getMonthlySalesData = (salesLogsList, vehiclesList) => {
     });
   }
 
-  const mockThisYear = [3, 4, 3, 6, 5, 8, 7, 9, 8, 10, 11, 14];
-  const mockLastYear = [2, 3, 4, 5, 4, 6, 5, 7, 6, 8, 9, 10];
-
-  const finalThisYear = [...mockThisYear];
-  const currentMonth = new Date().getMonth();
-  for (let m = 0; m < 12; m++) {
-    if (thisYearSales[m] > 0) {
-      finalThisYear[m] = thisYearSales[m];
-    } else if (m === currentMonth && thisYearSales[m] === 0) {
-      finalThisYear[m] = 0;
-    }
-  }
-
-  const finalLastYear = [...mockLastYear];
-  for (let m = 0; m < 12; m++) {
-    if (lastYearSales[m] > 0) {
-      finalLastYear[m] = lastYearSales[m];
-    }
-  }
+  const finalThisYear = [...thisYearSales];
+  const finalLastYear = [...lastYearSales];
 
   const maxVal = Math.max(...finalThisYear, ...finalLastYear, 5);
 
@@ -96,39 +78,30 @@ export default function SalesAnalytics() {
     async function loadAnalyticsData() {
       setLoading(true);
       if (!supabase) {
-        // Mock fallback load from local storage
-        const localVehicles = localStorage.getItem("truevalue_mock_vehicles");
-        setVehicles(localVehicles ? JSON.parse(localVehicles) : mockCars);
-
-        const localLogs = localStorage.getItem("truevalue_mock_sales_logs");
-        setSalesLogs(localLogs ? JSON.parse(localLogs) : []);
+        setVehicles([]);
+        setSalesLogs([]);
         setLoading(false);
         return;
       }
 
       try {
         const { data: vData, error: vError } = await supabase.from("vehicles").select("*");
-        if (vError || !vData || vData.length === 0) {
-          const localVehicles = localStorage.getItem("truevalue_mock_vehicles");
-          setVehicles(localVehicles ? JSON.parse(localVehicles) : mockCars);
+        if (vError || !vData) {
+          setVehicles([]);
         } else {
           setVehicles(vData);
         }
 
         const { data: lData, error: lError } = await supabase.from("sales_logs").select("*");
-        if (lError || !lData || lData.length === 0) {
-          const localLogs = localStorage.getItem("truevalue_mock_sales_logs");
-          setSalesLogs(localLogs ? JSON.parse(localLogs) : []);
+        if (lError || !lData) {
+          setSalesLogs([]);
         } else {
           setSalesLogs(lData);
         }
       } catch (err) {
-        console.error("Error loading analytics data, using fallback:", err);
-        const localVehicles = localStorage.getItem("truevalue_mock_vehicles");
-        setVehicles(localVehicles ? JSON.parse(localVehicles) : mockCars);
-
-        const localLogs = localStorage.getItem("truevalue_mock_sales_logs");
-        setSalesLogs(localLogs ? JSON.parse(localLogs) : []);
+        console.error("Error loading analytics data:", err);
+        setVehicles([]);
+        setSalesLogs([]);
       } finally {
         setLoading(false);
       }
