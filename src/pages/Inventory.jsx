@@ -223,7 +223,7 @@ export default function Inventory() {
           {filteredVehicles.map((car) => {
             const isSold = (car.status || "").toUpperCase() === "SOLD";
             const isValuation = (car.status || "").toUpperCase() === "RESERVED";
-            const carImg = car.images?.[0] || car.image_url || "https://images.unsplash.com/photo-1542282088-fe8426682b8f";
+            const carImg = car.image_url || car.images?.[0] || "/placeholder.webp";
             return (
               <div 
                 key={car.vehicle_id} 

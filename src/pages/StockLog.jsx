@@ -157,7 +157,7 @@ export default function StockLog() {
             const status = (car.status || car.history_points?.badge || car.badge || "AVAILABLE").toUpperCase();
             const isSold = status === "SOLD";
             const isValuation = status === "VALUATION" || status === "UNDER VALUATION" || status === "RESERVED";
-            const carImg = car.images?.[0] || car.image_url || "https://images.unsplash.com/photo-1542282088-fe8426682b8f";
+            const carImg = car.image_url || car.images?.[0] || "/placeholder.webp";
             const km = car.kilometers_driven || car.mileage_km || 0;
             const price = getVehiclePrice(car);
             return (

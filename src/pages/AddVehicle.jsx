@@ -34,13 +34,55 @@ const compressImage = (file) => {
         const ctx = canvas.getContext("2d");
         ctx.drawImage(img, 0, 0, width, height);
 
-        const dataUrl = canvas.toDataURL("image/webp", 0.7);
-        resolve(dataUrl);
+        canvas.toBlob((blob) => {
+          if (blob) {
+            resolve(blob);
+          } else {
+            reject(new Error("Canvas toBlob failed"));
+          }
+        }, "image/webp", 0.7);
       };
       img.onerror = (err) => reject(err);
     };
     reader.onerror = (err) => reject(err);
   });
+};
+
+const uploadImageToSupabase = async (file) => {
+  if (!supabase) {
+    throw new Error("Supabase client is not initialized.");
+  }
+
+  // 1. Compress image to webp blob
+  const webpBlob = await compressImage(file);
+
+  // 2. Generate filepath in format: <timestamp>-<filename>.webp
+  const timestamp = Date.now();
+  const originalName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
+  const sanitizedFilename = originalName.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase();
+  const filePath = `vehicle-images/${timestamp}-${sanitizedFilename}.webp`;
+
+  // 3. Upload WebP blob to bucket
+  const { data: uploadData, error: uploadError } = await supabase.storage
+    .from("vehicle-images")
+    .upload(filePath, webpBlob, {
+      contentType: "image/webp"
+    });
+
+  if (uploadError) {
+    throw uploadError;
+  }
+
+  // 4. Generate public URL
+  const { data } = supabase.storage
+    .from("vehicle-images")
+    .getPublicUrl(filePath);
+
+  if (!data?.publicUrl) {
+    throw new Error("Failed to get public URL for uploaded image");
+  }
+
+  return data.publicUrl;
 };
 
 export default function AddVehicle() {
@@ -73,11 +115,11 @@ export default function AddVehicle() {
 
     setCompressing(true);
     try {
-      const base64 = await compressImage(file);
-      setImageUrl(base64);
+      const publicUrl = await uploadImageToSupabase(file);
+      setImageUrl(publicUrl);
     } catch (err) {
-      console.error("Failed to compress image:", err);
-      alert("Failed to process image. Please try again.");
+      console.error("Failed to upload main image:", err);
+      alert("Failed to process and upload image. Please try again.");
     } finally {
       setCompressing(false);
     }
@@ -94,7 +136,7 @@ export default function AddVehicle() {
           console.warn(`File ${file.name} skipped as it exceeds 10MB.`);
           return null;
         }
-        return await compressImage(file);
+        return await uploadImageToSupabase(file);
       });
 
       const results = await Promise.all(promises);
@@ -102,7 +144,7 @@ export default function AddVehicle() {
 
       setGallery(prev => [...prev, ...validResults]);
     } catch (err) {
-      console.error("Failed to compress gallery images:", err);
+      console.error("Failed to upload gallery images:", err);
       alert("Failed to process one or more images. Please try again.");
     } finally {
       setCompressing(false);
@@ -130,6 +172,9 @@ export default function AddVehicle() {
 
     setSubmitting(true);
 
+    const uploadedUrls = [imageUrl, ...gallery].filter(Boolean);
+    console.log("Uploaded URLs:", uploadedUrls);
+
     const vehicleData = {
       make,
       model,
@@ -140,7 +185,8 @@ export default function AddVehicle() {
       fuel_type: fuelType,
       transmission,
       category,
-      images: [imageUrl, ...gallery],
+      image_url: uploadedUrls[0] || null,
+      images: uploadedUrls,
       details: {
         color: color.trim()
       },

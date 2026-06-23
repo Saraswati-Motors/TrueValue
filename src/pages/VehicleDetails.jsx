@@ -36,7 +36,7 @@ export default function VehicleDetails() {
             kilometers_driven: data.mileage_km !== undefined ? data.mileage_km : data.kilometers_driven
           };
           setCar(normalized);
-          setActiveImage(normalized.images?.[0] || normalized.image_url);
+          setActiveImage(normalized.image_url || normalized.images?.[0] || "/placeholder.webp");
         } else {
           setCar(null);
         }
@@ -141,7 +141,7 @@ export default function VehicleDetails() {
   }
 
   const isSold = (car.status || "").toUpperCase() === "SOLD";
-  const imagesList = car.images && car.images.length > 0 ? car.images : [car.image_url].filter(Boolean);
+  const imagesList = car.images && car.images.length > 0 ? car.images : [car.image_url || "/placeholder.webp"];
 
   const getMetadata = (key, fallback) => {
     if (car.history_points && typeof car.history_points === "object" && !Array.isArray(car.history_points)) {
