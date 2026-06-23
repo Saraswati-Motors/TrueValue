@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
+import { getVehiclePrice } from "../utils/price";
 
 export default function Inventory() {
   const navigate = useNavigate();
@@ -88,7 +89,7 @@ export default function Inventory() {
           .from("sales_logs")
           .insert([{
             vehicle_id: id,
-            sold_price: car.price,
+            sold_price: getVehiclePrice(car),
             sale_date: new Date().toISOString()
           }]);
       }
@@ -254,7 +255,7 @@ export default function Inventory() {
                       {car.make} {car.model}
                     </h3>
                     <span className={`font-price-display text-price-display shrink-0 ${isSold ? "text-on-surface-variant" : "text-primary"}`}>
-                      ₹{car.price}L
+                      ₹{getVehiclePrice(car).toFixed(2)} L
                     </span>
                   </div>
 

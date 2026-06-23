@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
+import { getVehiclePrice } from "../utils/price";
 
 export default function VehicleDetails() {
   const { id } = useParams();
@@ -74,7 +75,7 @@ export default function VehicleDetails() {
         .from("sales_logs")
         .insert([{
           vehicle_id: car.id || car.vehicle_id,
-          sold_price: car.price,
+          sold_price: getVehiclePrice(car),
           sale_date: new Date().toISOString()
         }]);
 
@@ -82,6 +83,36 @@ export default function VehicleDetails() {
     } catch (err) {
       console.error("Failed to mark sold:", err.message);
       alert("Error updating database.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDeleteVehicle = async () => {
+    if (!car) return;
+    if (!window.confirm("Are you sure you want to delete this vehicle from inventory? This action cannot be undone.")) {
+      return;
+    }
+    setSubmitting(true);
+
+    if (!supabase) {
+      setSubmitting(false);
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("vehicles")
+        .delete()
+        .eq("id", car.id || car.vehicle_id);
+
+      if (error) throw error;
+
+      alert("Vehicle successfully deleted from inventory.");
+      navigate("/inventory");
+    } catch (err) {
+      console.error("Failed to delete vehicle:", err.message);
+      alert("Error deleting vehicle: " + err.message);
     } finally {
       setSubmitting(false);
     }
@@ -125,6 +156,18 @@ export default function VehicleDetails() {
   const insurance = getMetadata("insurance", "Comprehensive");
   const location = getMetadata("location", "Jhunsi, Prayagraj");
   const description = getMetadata("description", car.description || "This certified vehicle is in excellent condition and has been fully vetted by our Maruti Suzuki True Value workshop.");
+
+  const renderStars = (rating) => {
+    return (
+      <div className="flex text-attention-yellow">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <span key={star} className="material-symbols-outlined text-lg" style={{ fontVariationSettings: star <= rating ? "'FILL' 1" : "'FILL' 0" }}>
+            star
+          </span>
+        ))}
+      </div>
+    );
+  };
 
   return (
     <div className="max-w-container-max-width mx-auto w-full">
@@ -209,6 +252,14 @@ export default function VehicleDetails() {
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-2">
               <div className="flex justify-between items-center py-4 border-b border-outline-variant">
+                <span className="text-xs font-bold text-outline uppercase">Category</span>
+                <span className="font-semibold text-text-main">{car.category || "N/A"}</span>
+              </div>
+              <div className="flex justify-between items-center py-4 border-b border-outline-variant">
+                <span className="text-xs font-bold text-outline uppercase">Color</span>
+                <span className="font-semibold text-text-main">{car.details?.color || "N/A"}</span>
+              </div>
+              <div className="flex justify-between items-center py-4 border-b border-outline-variant">
                 <span className="text-xs font-bold text-outline uppercase">Engine</span>
                 <span className="font-semibold text-text-main">{engine}</span>
               </div>
@@ -227,6 +278,39 @@ export default function VehicleDetails() {
               <div className="flex justify-between items-center py-4 border-b border-outline-variant">
                 <span className="text-xs font-bold text-outline uppercase">Location</span>
                 <span className="font-semibold text-text-main truncate max-w-[60%]">{location}</span>
+              </div>
+            </div>
+          </section>
+
+          {/* Inspection Report Ratings */}
+          <section className="bg-white border border-outline-variant p-6 rounded-xl card-shadow">
+            <h2 className="text-xl font-bold text-text-main mb-6 border-l-4 border-primary pl-4">
+              376-Point Inspection Report
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-2">
+              <div className="flex justify-between items-center py-4 border-b border-outline-variant">
+                <span className="text-xs font-bold text-outline uppercase">Overall Rating</span>
+                {renderStars(car.ratings?.overall || 5)}
+              </div>
+              <div className="flex justify-between items-center py-4 border-b border-outline-variant">
+                <span className="text-xs font-bold text-outline uppercase">Exterior</span>
+                {renderStars(car.ratings?.exterior || 5)}
+              </div>
+              <div className="flex justify-between items-center py-4 border-b border-outline-variant">
+                <span className="text-xs font-bold text-outline uppercase">Interior + Elec</span>
+                {renderStars(car.ratings?.interior || 5)}
+              </div>
+              <div className="flex justify-between items-center py-4 border-b border-outline-variant">
+                <span className="text-xs font-bold text-outline uppercase">Engine</span>
+                {renderStars(car.ratings?.engine || 5)}
+              </div>
+              <div className="flex justify-between items-center py-4 border-b border-outline-variant">
+                <span className="text-xs font-bold text-outline uppercase">Functions</span>
+                {renderStars(car.ratings?.functions || 5)}
+              </div>
+              <div className="flex justify-between items-center py-4 border-b border-outline-variant">
+                <span className="text-xs font-bold text-outline uppercase">Frame/Structure</span>
+                {renderStars(car.ratings?.frame || 5)}
               </div>
             </div>
           </section>
@@ -257,7 +341,7 @@ export default function VehicleDetails() {
 
             <div>
               <span className="text-xs font-bold text-outline uppercase block mb-1">True Value Price</span>
-              <span className="text-3xl font-black text-primary">₹{car.price || car.price_lakh} Lakh</span>
+              <span className="text-3xl font-black text-primary">₹{getVehiclePrice(car).toFixed(2)} Lakh</span>
             </div>
 
             <div className="space-y-3 text-sm font-semibold text-on-surface-variant pt-2 border-t border-outline-variant">
@@ -289,6 +373,24 @@ export default function VehicleDetails() {
                 </div>
               )}
               
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => navigate(`/edit-vehicle/${car.id || car.vehicle_id}`)}
+                  className="flex-1 border border-primary text-primary py-3 rounded-lg font-bold hover:bg-primary-fixed transition-transform active:scale-95 text-xs flex items-center justify-center gap-1 bg-white"
+                >
+                  <span className="material-symbols-outlined text-sm">edit</span>
+                  EDIT DETAILS
+                </button>
+                <button 
+                  onClick={handleDeleteVehicle}
+                  disabled={submitting}
+                  className="flex-1 bg-error-container text-on-error-container py-3 rounded-lg font-bold hover:bg-error hover:text-white transition-transform active:scale-95 text-xs flex items-center justify-center gap-1 disabled:opacity-50"
+                >
+                  <span className="material-symbols-outlined text-sm">delete</span>
+                  DELETE
+                </button>
+              </div>
+
               <button 
                 onClick={() => navigate("/inventory")}
                 className="w-full bg-white border border-outline text-text-main py-4 rounded-lg font-bold hover:bg-surface-container transition-transform active:scale-95 shadow-sm text-sm"

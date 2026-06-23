@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
+import { getVehiclePrice } from "../utils/price";
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -398,7 +399,7 @@ export default function Dashboard() {
               const carId = car.vehicle_id || car.id;
               const carImg = car.images?.[0] || car.image_url || "https://images.unsplash.com/photo-1542282088-fe8426682b8f";
               const km = car.kilometers_driven || car.mileage_km || 0;
-              const price = car.price || car.price_lakh || 0;
+              const price = getVehiclePrice(car);
               const badge = car.history_points?.badge || car.badge || "READY";
               return (
                 <div
@@ -420,7 +421,7 @@ export default function Dashboard() {
                     </p>
                   </div>
                   <div className="text-right shrink-0">
-                    <p className="font-price-display text-primary text-lg">₹{price}L</p>
+                    <p className="font-price-display text-primary text-lg">₹{price.toFixed(2)}L</p>
                     <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${(car.status || badge)?.toUpperCase() === "SOLD"
                       ? "bg-red-100 text-red-800"
                       : (car.status || badge)?.toUpperCase() === "VALUATION" || (car.status || badge)?.toUpperCase() === "RESERVED"

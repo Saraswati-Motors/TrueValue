@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 import { getVehiclePrice } from "../utils/price";
 
@@ -43,8 +43,10 @@ const compressImage = (file) => {
   });
 };
 
-export default function AddVehicle() {
+export default function EditVehicle() {
+  const { id } = useParams();
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
   // Form states
@@ -61,6 +63,81 @@ export default function AddVehicle() {
   const [imageUrl, setImageUrl] = useState("");
   const [gallery, setGallery] = useState([]);
   const [compressing, setCompressing] = useState(false);
+  const [status, setStatus] = useState("Available");
+
+  const [engine, setEngine] = useState("1197 cc");
+  const [seatingCapacity, setSeatingCapacity] = useState("5 Seater");
+  const [ownership, setOwnership] = useState("First Owner");
+  const [insurance, setInsurance] = useState("Comprehensive");
+  const [description, setDescription] = useState("");
+  const [color, setColor] = useState("Solid Fire Red");
+  const [overallRating, setOverallRating] = useState(5);
+  const [exteriorRating, setExteriorRating] = useState(5);
+  const [interiorRating, setInteriorRating] = useState(5);
+  const [engineRating, setEngineRating] = useState(5);
+  const [functionsRating, setFunctionsRating] = useState(5);
+  const [frameRating, setFrameRating] = useState(5);
+
+  useEffect(() => {
+    async function loadVehicleDetails() {
+      setLoading(true);
+      if (!supabase || !id) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from("vehicles")
+          .select("*")
+          .eq("id", id)
+          .maybeSingle();
+
+        if (error) throw error;
+
+        if (data) {
+          setMake(data.make || "Maruti Suzuki");
+          setModel(data.model || "");
+          setVariant(data.variant || "");
+          setPriceLakh(getVehiclePrice(data));
+          setMileageKm(data.mileage_km !== undefined ? data.mileage_km : (data.kilometers_driven || ""));
+          setYear(data.year || new Date().getFullYear());
+          setFuelType(data.fuel_type || "Petrol");
+          setTransmission(data.transmission || "Manual");
+          setCategory(data.category || "Sedan");
+          setImageUrl(data.images?.[0] || data.image_url || "");
+          setGallery(data.images?.slice(1) || []);
+          setStatus(data.status || "Available");
+          
+          if (data.details) {
+            setColor(data.details.color || "Solid Fire Red");
+          }
+          if (data.ratings) {
+            setOverallRating(data.ratings.overall || 5);
+            setExteriorRating(data.ratings.exterior || 5);
+            setInteriorRating(data.ratings.interior || 5);
+            setEngineRating(data.ratings.engine || 5);
+            setFunctionsRating(data.ratings.functions || 5);
+            setFrameRating(data.ratings.frame || 5);
+          }
+          if (data.history_points) {
+            setLocation(data.history_points.location || "Jhunsi, Prayagraj");
+            setEngine(data.history_points.engine || "1197 cc");
+            setSeatingCapacity(data.history_points.seating_capacity || "5 Seater");
+            setOwnership(data.history_points.ownership || "First Owner");
+            setInsurance(data.history_points.insurance || "Comprehensive");
+            setDescription(data.history_points.description || "");
+          }
+        }
+      } catch (err) {
+        console.error("Error loading vehicle details for edit:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadVehicleDetails();
+  }, [id]);
 
   const handleMainImageChange = async (e) => {
     const file = e.target.files[0];
@@ -108,18 +185,6 @@ export default function AddVehicle() {
       setCompressing(false);
     }
   };
-  const [engine, setEngine] = useState("1197 cc");
-  const [seatingCapacity, setSeatingCapacity] = useState("5 Seater");
-  const [ownership, setOwnership] = useState("First Owner");
-  const [insurance, setInsurance] = useState("Comprehensive");
-  const [description, setDescription] = useState("");
-  const [color, setColor] = useState("Solid Fire Red");
-  const [overallRating, setOverallRating] = useState(5);
-  const [exteriorRating, setExteriorRating] = useState(5);
-  const [interiorRating, setInteriorRating] = useState(5);
-  const [engineRating, setEngineRating] = useState(5);
-  const [functionsRating, setFunctionsRating] = useState(5);
-  const [frameRating, setFrameRating] = useState(5);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -140,7 +205,7 @@ export default function AddVehicle() {
       fuel_type: fuelType,
       transmission,
       category,
-      images: [imageUrl, ...gallery],
+      images: [imageUrl || "https://images.unsplash.com/photo-1542282088-fe8426682b8f", ...gallery],
       details: {
         color: color.trim()
       },
@@ -159,12 +224,11 @@ export default function AddVehicle() {
         ownership,
         insurance,
         description,
-        badge: "NEW ARRIVAL",
+        badge: "VERIFIED",
         is_certified: true,
         is_featured: false
       },
-      status: "Available",
-      created_at: new Date().toISOString()
+      status
     };
 
     if (!supabase) {
@@ -173,58 +237,41 @@ export default function AddVehicle() {
     }
 
     try {
-      console.log("Vehicle Data:", vehicleData);
-      // Omit manual id and let Supabase generate UUID
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from("vehicles")
-        .insert([vehicleData])
-        .select();
+        .update(vehicleData)
+        .eq("id", id);
 
       if (error) throw error;
 
-      const addedVehicle = data && data[0];
-      if (addedVehicle) {
-        try {
-          const { error: logError } = await supabase
-            .from("sales_logs")
-            .insert([{
-              vehicle_id: addedVehicle.id,
-              sold_price: getVehiclePrice(addedVehicle),
-              sale_date: new Date().toISOString()
-            }]);
-          if (logError) {
-            console.warn("Failed to insert sales log:", logError.message);
-          }
-        } catch (logErr) {
-          console.warn("Error inserting sales log:", logErr.message);
-        }
-      }
-
-      navigate("/inventory");
+      alert("Vehicle updated successfully.");
+      navigate(`/vehicle/${id}`);
     } catch (err) {
-      console.error("Failed to add vehicle to Supabase:", err);
-      const isNetworkError = (err.message || "").toLowerCase().includes("load failed") || 
-                             (err.message || "").toLowerCase().includes("fetch") ||
-                             !navigator.onLine;
-      if (isNetworkError) {
-        alert("Network connection error or request timed out. If this persists, please ensure you have applied the Supabase RLS policy fix to stop the infinite recursion loop in your database.");
-      } else {
-        alert(`Error adding vehicle to database: ${err.message || err}`);
-      }
+      console.error("Failed to update vehicle in Supabase:", err);
+      alert(`Error updating vehicle: ${err.message || err}`);
     } finally {
       setSubmitting(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="w-full text-center py-24 text-gray-500 font-bold">
+        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary mx-auto mb-4"></div>
+        Loading vehicle details...
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-container-max-width mx-auto w-full">
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="font-headline-xl text-headline-xl-mobile md:text-headline-xl text-text-main mb-2">
-            Add New Vehicle
+            Edit Vehicle Details
           </h1>
           <p className="font-body-md text-on-surface-variant">
-            Submit vehicle specifications and details to include them in the TrueValue database.
+            Modify vehicle specifications and details in the TrueValue database.
           </p>
         </div>
       </div>
@@ -357,7 +404,7 @@ export default function AddVehicle() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div>
             <label className="block font-label-lg mb-2 text-on-surface">Dealership Location</label>
             <input
@@ -378,6 +425,18 @@ export default function AddVehicle() {
               onChange={(e) => setColor(e.target.value)}
               required
             />
+          </div>
+          <div>
+            <label className="block font-label-lg mb-2 text-on-surface">Status</label>
+            <select
+              className="w-full px-4 py-3 border border-outline-variant rounded-lg bg-surface-container-low min-h-[48px] outline-none focus:ring-1 focus:ring-primary"
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+            >
+              <option>Available</option>
+              <option>Reserved</option>
+              <option>Sold</option>
+            </select>
           </div>
         </div>
 
@@ -649,7 +708,7 @@ export default function AddVehicle() {
         <div className="pt-4 flex gap-4 border-t border-outline-variant">
           <button
             type="button"
-            onClick={() => navigate("/inventory")}
+            onClick={() => navigate(`/vehicle/${id}`)}
             className="flex-1 py-4 border border-primary text-primary rounded-lg font-label-lg hover:bg-primary-fixed transition-colors text-center"
           >
             Cancel
@@ -659,7 +718,7 @@ export default function AddVehicle() {
             disabled={submitting}
             className="flex-1 py-4 bg-primary text-on-primary rounded-lg font-label-lg shadow-md hover:shadow-lg active:scale-95 transition-all text-center flex items-center justify-center disabled:opacity-50"
           >
-            {submitting ? "Adding to Database..." : "Add Vehicle"}
+            {submitting ? "Updating Database..." : "Save Changes"}
           </button>
         </div>
       </form>

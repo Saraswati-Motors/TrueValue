@@ -12,6 +12,7 @@ import StockLog from "./pages/StockLog";
 import PendingRequests from "./pages/PendingRequests";
 import SalesAnalytics from "./pages/SalesAnalytics";
 import UserManagement from "./pages/UserManagement";
+import EditVehicle from "./pages/EditVehicle";
 
 function App() {
   return (
@@ -33,6 +34,7 @@ function App() {
           <Route path="inventory" element={<Inventory />} />
           <Route path="vehicle/:id" element={<VehicleDetails />} />
           <Route path="add-vehicle" element={<AddVehicle />} />
+          <Route path="edit-vehicle/:id" element={<EditVehicle />} />
           <Route path="stock-log" element={<StockLog />} />
           <Route path="pending-requests" element={<PendingRequests />} />
           <Route path="sales-analytics" element={<SalesAnalytics />} />

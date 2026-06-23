@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
+import { getVehiclePrice } from "../utils/price";
 
 export default function StockLog() {
   const navigate = useNavigate();
@@ -73,7 +74,7 @@ export default function StockLog() {
       ...filteredVehicles.map(v => {
         const carId = v.vehicle_id || v.id;
         const km = v.kilometers_driven || v.mileage_km || 0;
-        const price = v.price || v.price_lakh || 0;
+        const price = getVehiclePrice(v);
         const badge = v.history_points?.badge || v.badge || "Available";
         return [
           carId, v.make, v.model, v.variant, v.year, km, v.fuel_type, v.transmission, price, v.status || badge, v.created_at || "N/A"
@@ -158,7 +159,7 @@ export default function StockLog() {
             const isValuation = status === "VALUATION" || status === "UNDER VALUATION" || status === "RESERVED";
             const carImg = car.images?.[0] || car.image_url || "https://images.unsplash.com/photo-1542282088-fe8426682b8f";
             const km = car.kilometers_driven || car.mileage_km || 0;
-            const price = car.price || car.price_lakh || 0;
+            const price = getVehiclePrice(car);
             return (
               <div 
                 key={carId || index}
@@ -207,7 +208,7 @@ export default function StockLog() {
                   {isValuation ? (
                     <span className="font-price-display text-price-display text-on-surface-variant italic">Valuation Pending</span>
                   ) : (
-                    <span className="font-price-display text-price-display text-secondary">₹{price} Lakh</span>
+                    <span className="font-price-display text-price-display text-secondary">₹{price.toFixed(2)} Lakh</span>
                   )}
                   <button 
                     onClick={(e) => {
